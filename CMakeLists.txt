@@ -28,6 +28,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 # Find and add all dependencies
 CPMAddPackage("gh:nlohmann/json@3.12.0")
 CPMAddPackage("gh:cursey/safetyhook@0.6.9")
+CPMAddPackage("gh:TsudaKageyu/minhook@1.3.4")
 CPMAddPackage("gh:gabime/spdlog@1.16.0")
 CPMAddPackage(
     NAME SQLite3MultipleCiphers
@@ -45,4 +46,4 @@ add_library(gallop SHARED)
 
 add_subdirectory(thirdparty)
 add_subdirectory(src)
-target_link_libraries(gallop PRIVATE -static -ldwmapi OpenGL::GL nlohmann_json::nlohmann_json safetyhook::safetyhook spdlog::spdlog sqlite3mc::sqlite3mc_static)
+target_link_libraries(gallop PRIVATE -static -ldwmapi OpenGL::GL nlohmann_json::nlohmann_json safetyhook::safetyhook minhook spdlog::spdlog sqlite3mc::sqlite3mc_static)

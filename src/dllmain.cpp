@@ -5,6 +5,8 @@
 #include "gallop.hpp"
 #include "imgui_sink.hpp"
 
+#include "MinHook.h"
+
 namespace gallop {
 std::shared_ptr<spdlog::logger> logger;
 std::shared_ptr<gui::imgui_sink_mt> sink;
@@ -21,14 +23,24 @@ void attach()
 
 	spdlog::info("[gallop] Successfully attached!");
 
+	std::thread(gui::run).detach();
+
 	// Initialize config
 	init_config();
+	if (MH_Initialize() != MH_OK) {
+		spdlog::error("[gallop] Failed to initialize minhook!");
+		return;
+	}
 	il2cpp::init();
+	MH_EnableHook(MH_ALL_HOOKS);
 	init_mdb();
-
-	std::thread(gui::run).detach();
 }
-void detach() { deinit_mdb(); }
+void detach()
+{
+	MH_DisableHook(MH_ALL_HOOKS);
+	MH_Uninitialize();
+	deinit_mdb();
+}
 } // namespace gallop
 
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)

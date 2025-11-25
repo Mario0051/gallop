@@ -12,8 +12,13 @@
 
 // clang-format off
 #define HOOK_DEF(functionname, returntype, signature) \
-	extern SafetyHookInline functionname##_orig; \
+	extern void* functionname##_orig; \
 	returntype functionname##_hook signature;
+#define CALL_ORIG(functionname) \
+	reinterpret_cast<decltype(functionname##_hook)*>(functionname##_orig)
+#define SETUP_HOOK_FOR_FUNC(functionname, returntype) \
+	void* functionname##_orig; \
+	returntype functionname##_hook
 // clang-format on
 
 // Defines the gallop namespace.
@@ -34,10 +39,10 @@ extern std::shared_ptr<gui::imgui_sink_mt> sink;
 int init_config();
 
 typedef struct gallop_char_info_s {
-	int charaId;
-	int clothId;
-	bool replaceMini;
-	bool homeScreenOnly;
+	int charaId = 0;
+	int clothId = 0;
+	bool replaceMini = false;
+	bool homeScreenOnly = false;
 } gallop_char_info_t;
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE_WITH_DEFAULT(gallop_char_info_s, charaId, clothId, replaceMini, homeScreenOnly)
 
@@ -62,9 +67,14 @@ extern sqlite::database meta;
 int init_mdb();
 void deinit_mdb();
 
+// Model data
+extern std::unordered_map<int, int> dress2head;
+extern std::unordered_map<int, int> dress2mini;
+
 // IL2CPP handling
 namespace il2cpp {
 int init();
+void* create_hook(std::string namespaze, std::string class_name, std::string method, int method_args, void* destination);
 // hooks
 namespace hooks {
 // Model hooks //
@@ -92,6 +102,8 @@ HOOK_DEF(WorkSingleModeCharaData_GetRaceDressId, int, (void* _this, bool isApply
 HOOK_DEF(EditableCharacterBuildInfo_ctor, void,
 		 (void* _this, int cardId, int charaId, int dressId, int controllerType, int zekken, int mobId, int backDancerColorId, int headId,
 		  bool isUseDressDataHeadModelSubId, bool isEnableModelCache, int chara_dress_color_set_id))
+
+void init_model_hooks();
 } // namespace hooks
 } // namespace il2cpp
 } // namespace gallop

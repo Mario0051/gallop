@@ -1,6 +1,8 @@
 #include "aetherim/api.hpp"
 #include "aetherim/wrapper.hpp"
 #include "gallop.hpp"
+#include <MinHook.h>
+#include <safetyhook/easy.hpp>
 #include <windows.h>
 
 #include <filesystem>
@@ -363,7 +365,24 @@ int init()
 		return 1;
 	}
 	spdlog::info("[gallop] Initialized umamusume.dll image");
+
+	hooks::init_model_hooks();
 	return 0;
+}
+
+// Creates a hook that returns a reference to the original function
+void* create_hook(std::string namespaze, std::string class_name, std::string method, int method_args, void* destination)
+{
+	auto cls = umaimg->get_class(class_name.c_str(), namespaze.c_str());
+	if (!cls)
+		return {};
+	auto meth = cls->get_method(method.c_str(), method_args);
+	if (!meth)
+		return {};
+	spdlog::info("[gallop] Created hook to {}::{}.{}: 0x{}", namespaze, class_name, method, std::to_string(reinterpret_cast<unsigned long long>(meth)));
+	void* ptr;
+	MH_CreateHook(UFUNC(meth), destination, &ptr);
+	return ptr;
 }
 } // namespace il2cpp
 } // namespace gallop

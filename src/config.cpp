@@ -31,7 +31,14 @@ int init_config()
 		config = nlohmann::json::parse(f);
 	}
 
+	spdlog::info("[config] config: {}", config.dump());
+
 	conf = config.get<gallop_config_s>();
+	spdlog::info("[config] checking replaceCharacters");
+	for (const auto& i : conf.replaceCharacters) {
+		spdlog::info("[config] replaceCharacters[{}]", i.first);
+		spdlog::info("[config] charaId: {}", i.second.charaId);
+	}
 
 	return 0;
 }

@@ -34,6 +34,9 @@ namespace gallop {
 sqlite::database master;
 sqlite::database meta;
 
+std::unordered_map<int, int> dress2head;
+std::unordered_map<int, int> dress2mini;
+
 int init_mdb()
 {
 	std::string pragma_prepare = ("PRAGMA hexkey='" + std::string(DATABASE_KEY) + "'");
@@ -78,10 +81,20 @@ int init_mdb()
 		meta << "SELECT CAST(n AS TEXT) FROM a WHERE n LIKE '3d/chara/body/bdy0002_00/pfb_bdy%'";
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] meta could not be tested! {}", e.what());
-		return 1;
 	}
 
 	spdlog::info("[mdb] Initialized successfully!");
+
+	// Query dress -> head ids and dress -> mini ids
+	try {
+		master << "SELECT id, head_sub_id, have_mini FROM dress_data" >> [&](int id, int head_sub_id, int have_mini) {
+			dress2mini.emplace(id, have_mini);
+			dress2head.emplace(id, head_sub_id);
+			// spdlog::info("[mdb] {} -> {}", id, head_sub_id);
+		};
+	} catch (const std::exception& e) {
+		spdlog::error("[mdb] could not extract dress ids from master.mdb! {}", e.what());
+	}
 
 	return 0;
 }

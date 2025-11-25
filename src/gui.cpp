@@ -49,7 +49,7 @@ int init()
 	// Create application window
 	WNDCLASSEXW wc = {sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
 	::RegisterClassExW(&wc);
-	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"CarrotJuicer", WS_OVERLAPPEDWINDOW, 100, 100, (int)(640 * main_scale), (int)(400 * main_scale), nullptr,
+	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"CarrotJuicer", WS_OVERLAPPEDWINDOW, 100, 100, (int)(700 * main_scale), (int)(500 * main_scale), nullptr,
 								nullptr, wc.hInstance, nullptr);
 
 	// Initialize OpenGL
@@ -151,7 +151,7 @@ int update_and_paint()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::SetNextWindowSize({640, 400});
+	ImGui::SetNextWindowSize({700, 500});
 	ImGui::SetNextWindowPos({0, 0});
 	if (ImGui::Begin("libgallop", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
 		if (ImGui::BeginTabBar("Main", ImGuiTabBarFlags_None)) {
