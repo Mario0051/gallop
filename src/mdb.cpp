@@ -34,8 +34,12 @@ namespace gallop {
 sqlite::database master;
 sqlite::database meta;
 
+// Maps dresses to head IDs
 std::unordered_map<int, int> dress2head;
+// Maps dresses to mini dress existence
 std::unordered_map<int, int> dress2mini;
+// Maps character IDs to dress IDs
+std::unordered_map<int, std::vector<int>> chara2dress;
 
 int init_mdb()
 {
@@ -91,6 +95,13 @@ int init_mdb()
 			dress2mini.emplace(id, have_mini);
 			dress2head.emplace(id, head_sub_id);
 			// spdlog::info("[mdb] {} -> {}", id, head_sub_id);
+		};
+		master << "SELECT chara_id, id FROM dress_data" >> [&](int chara_id, int id) {
+			if (!chara2dress.contains(chara_id)) {
+				chara2dress.emplace(chara_id, std::vector<int>());
+			}
+			auto& dresses = chara2dress.at(chara_id);
+			dresses.push_back(id);
 		};
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] could not extract dress ids from master.mdb! {}", e.what());

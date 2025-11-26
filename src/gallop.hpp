@@ -2,7 +2,6 @@
 
 #include "imgui_sink.hpp"
 #include "nlohmann/json.hpp"
-#include "safetyhook.hpp"
 #include "spdlog/spdlog.h"
 #include "sqlite3mc.h"
 #include <sqlite_modern_cpp.h>
@@ -70,6 +69,7 @@ void deinit_mdb();
 // Model data
 extern std::unordered_map<int, int> dress2head;
 extern std::unordered_map<int, int> dress2mini;
+extern std::unordered_map<int, std::vector<int>> chara2dress;
 
 // IL2CPP handling
 namespace il2cpp {
