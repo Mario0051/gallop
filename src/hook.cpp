@@ -344,9 +344,14 @@ std::unordered_map<std::string, std::string> generate_symbol_map()
 	return ret;
 }
 
+// Symbol map given an rva
 static std::unordered_map<std::string, std::string> SYMBOL_MAP = generate_symbol_map();
+
+// Wrapper for some il2cpp functions
 std::unique_ptr<Wrapper> wrapper;
+// umamusume.dll image
 Image* umaimg;
+
 int init()
 {
 	// Initialize wrapper and point main image to umamusume.dll
@@ -384,5 +389,7 @@ void* create_hook(std::string namespaze, std::string class_name, std::string met
 	MH_CreateHook(UFUNC(meth), destination, &ptr);
 	return ptr;
 }
+
+void* get_class_from_instance(const void* instance) { return *static_cast<void* const*>(std::assume_aligned<alignof(void*)>(instance)); }
 } // namespace il2cpp
 } // namespace gallop

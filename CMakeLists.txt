@@ -16,6 +16,9 @@ set(CMAKE_C_COMPILER_TARGET ${TARGET})
 set(CMAKE_CXX_COMPILER_TARGET ${TARGET})
 set(CMAKE_SYSTEM_NAME "Windows")
 
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED True)
+
 # Compile flags
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -30,6 +33,7 @@ CPMAddPackage("gh:nlohmann/json@3.12.0")
 CPMAddPackage("gh:cursey/safetyhook@0.6.9")
 CPMAddPackage("gh:TsudaKageyu/minhook@1.3.4")
 CPMAddPackage("gh:gabime/spdlog@1.16.0")
+CPMAddPackage("gh:ToruNiina/toml11@4.4.0")
 CPMAddPackage(
     NAME SQLite3MultipleCiphers
     GITHUB_REPOSITORY utelle/SQLite3MultipleCiphers
@@ -46,4 +50,4 @@ add_library(gallop SHARED)
 
 add_subdirectory(thirdparty)
 add_subdirectory(src)
-target_link_libraries(gallop PRIVATE -static -ldwmapi OpenGL::GL nlohmann_json::nlohmann_json safetyhook::safetyhook minhook spdlog::spdlog sqlite3mc::sqlite3mc_static)
+target_link_libraries(gallop PRIVATE -static -ldwmapi OpenGL::GL nlohmann_json::nlohmann_json toml11::toml11 safetyhook::safetyhook minhook spdlog::spdlog sqlite3mc::sqlite3mc_static)

@@ -137,39 +137,39 @@ void write_field(void* ptr, const Field* field, const T& value)
 	std::memcpy(fieldPtr, std::addressof(value), sizeof(T));
 }
 
-SETUP_HOOK_FOR_FUNC(StoryCharacter3D_LoadModel, void)(int charaId, int cardId, int clothId, int zekkenNumber, int headId, bool isWet, bool isDirt, int mobId,
-													  int dressColorId, int charaDressColorSetId, void* zekkenName, int zekkenFontStyle, int color,
-													  int fontColor, int suitColor, bool isUseDressDataHeadModelSubId, bool useCircleShadow,
-													  int wetTexturePartsFlag)
+GALLOP_SETUP_HOOK_FOR_FUNC(StoryCharacter3D_LoadModel, void)(int charaId, int cardId, int clothId, int zekkenNumber, int headId, bool isWet, bool isDirt,
+															 int mobId, int dressColorId, int charaDressColorSetId, void* zekkenName, int zekkenFontStyle,
+															 int color, int fontColor, int suitColor, bool isUseDressDataHeadModelSubId, bool useCircleShadow,
+															 int wetTexturePartsFlag)
 {
 	ReplaceCharacterController(cardId, charaId, clothId, headId, UmaControllerType::ORIG);
-	return CALL_ORIG(StoryCharacter3D_LoadModel)(charaId, cardId, clothId, zekkenNumber, headId, isWet, isDirt, mobId, dressColorId, charaDressColorSetId,
-												 zekkenName, zekkenFontStyle, color, fontColor, suitColor, isUseDressDataHeadModelSubId, useCircleShadow,
-												 wetTexturePartsFlag);
+	return GALLOP_CALL_ORIG(StoryCharacter3D_LoadModel)(charaId, cardId, clothId, zekkenNumber, headId, isWet, isDirt, mobId, dressColorId,
+														charaDressColorSetId, zekkenName, zekkenFontStyle, color, fontColor, suitColor,
+														isUseDressDataHeadModelSubId, useCircleShadow, wetTexturePartsFlag);
 }
-SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_ctor_0, void)(void* _this, int charaId, int dressId, int controllerType, int headId, int zekken, int mobId,
-													 int backDancerColorId, bool isUseDressDataHeadModelSubId, int audienceId, int motionDressId,
-													 bool isEnableModelCache)
+GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_ctor_0, void)(void* _this, int charaId, int dressId, int controllerType, int headId, int zekken, int mobId,
+															int backDancerColorId, bool isUseDressDataHeadModelSubId, int audienceId, int motionDressId,
+															bool isEnableModelCache)
 {
 	ReplaceCharacterController(charaId, dressId, headId, static_cast<UmaControllerType>(controllerType));
-	return CALL_ORIG(CharacterBuildInfo_ctor_0)(_this, charaId, dressId, controllerType, headId, zekken, mobId, backDancerColorId, isUseDressDataHeadModelSubId,
-												audienceId, motionDressId, isEnableModelCache);
+	return GALLOP_CALL_ORIG(CharacterBuildInfo_ctor_0)(_this, charaId, dressId, controllerType, headId, zekken, mobId, backDancerColorId,
+													   isUseDressDataHeadModelSubId, audienceId, motionDressId, isEnableModelCache);
 }
-SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_ctor_1, void)(void* _this, int cardId, int charaId, int dressId, int controllerType, int headId, int zekken, int mobId,
-													 int backDancerColorId, int overrideClothCategory, bool isUseDressDataHeadModelSubId, int audienceId,
-													 int motionDressId, bool isEnableModelCache, int charaDressColorSetId)
+GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_ctor_1, void)(void* _this, int cardId, int charaId, int dressId, int controllerType, int headId, int zekken,
+															int mobId, int backDancerColorId, int overrideClothCategory, bool isUseDressDataHeadModelSubId,
+															int audienceId, int motionDressId, bool isEnableModelCache, int charaDressColorSetId)
 {
 	ReplaceCharacterController(cardId, charaId, dressId, headId, static_cast<UmaControllerType>(controllerType));
-	return CALL_ORIG(CharacterBuildInfo_ctor_1)(_this, cardId, charaId, dressId, controllerType, headId, zekken, mobId, backDancerColorId,
-												overrideClothCategory, isUseDressDataHeadModelSubId, audienceId, motionDressId, isEnableModelCache,
-												charaDressColorSetId);
+	return GALLOP_CALL_ORIG(CharacterBuildInfo_ctor_1)(_this, cardId, charaId, dressId, controllerType, headId, zekken, mobId, backDancerColorId,
+													   overrideClothCategory, isUseDressDataHeadModelSubId, audienceId, motionDressId, isEnableModelCache,
+													   charaDressColorSetId);
 }
 
 #define SET_FIELD_AND_READ(_this, this_class, var, type)                                                                                                       \
 	static Field* var##_field = reinterpret_cast<Field*>(Il2cpp::get_field(this_class, (std::string("_") + std::string(#var)).c_str()));                       \
 	auto var = read_field<type>(_this, var##_field);
 
-SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
+GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 {
 	static void* this_class = get_class_from_instance(_this);
 
@@ -192,11 +192,11 @@ SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 		write_field(_this, cardId_field, -1);
 	}
 
-	return CALL_ORIG(CharacterBuildInfo_Rebuild)(_this);
+	return GALLOP_CALL_ORIG(CharacterBuildInfo_Rebuild)(_this);
 }
-SETUP_HOOK_FOR_FUNC(WorkSingleModeCharaData_GetRaceDressId, int)(void* _this, bool isApplyDressChange)
+GALLOP_SETUP_HOOK_FOR_FUNC(WorkSingleModeCharaData_GetRaceDressId, int)(void* _this, bool isApplyDressChange)
 {
-	int ret = CALL_ORIG(WorkSingleModeCharaData_GetRaceDressId)(_this, false);
+	int ret = GALLOP_CALL_ORIG(WorkSingleModeCharaData_GetRaceDressId)(_this, false);
 	if ((ret > 100000) && (ret <= 999999)) {
 		int charaId;
 		if (ret / 10000 == 90) {
@@ -212,13 +212,13 @@ SETUP_HOOK_FOR_FUNC(WorkSingleModeCharaData_GetRaceDressId, int)(void* _this, bo
 	}
 	return ret;
 }
-SETUP_HOOK_FOR_FUNC(EditableCharacterBuildInfo_ctor, void)(void* _this, int cardId, int charaId, int dressId, int controllerType, int zekken, int mobId,
-														   int backDancerColorId, int headId, bool isUseDressDataHeadModelSubId, bool isEnableModelCache,
-														   int chara_dress_color_set_id)
+GALLOP_SETUP_HOOK_FOR_FUNC(EditableCharacterBuildInfo_ctor, void)(void* _this, int cardId, int charaId, int dressId, int controllerType, int zekken, int mobId,
+																  int backDancerColorId, int headId, bool isUseDressDataHeadModelSubId, bool isEnableModelCache,
+																  int chara_dress_color_set_id)
 {
 	ReplaceCharacterController(cardId, charaId, dressId, headId, static_cast<UmaControllerType>(controllerType));
-	return CALL_ORIG(EditableCharacterBuildInfo_ctor)(_this, cardId, charaId, dressId, controllerType, zekken, mobId, backDancerColorId, headId,
-													  isUseDressDataHeadModelSubId, isEnableModelCache, chara_dress_color_set_id);
+	return GALLOP_CALL_ORIG(EditableCharacterBuildInfo_ctor)(_this, cardId, charaId, dressId, controllerType, zekken, mobId, backDancerColorId, headId,
+															 isUseDressDataHeadModelSubId, isEnableModelCache, chara_dress_color_set_id);
 }
 void init_model_hooks()
 {
