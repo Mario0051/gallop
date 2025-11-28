@@ -3,6 +3,9 @@ add_executable(gallop_gui WIN32
     gui.cpp 
     imgui_sink.cpp
 
+    config.cpp
+    mdb.cpp
+
     ../thirdparty/imgui/imgui.cpp
     ../thirdparty/imgui/imgui_draw.cpp
     ../thirdparty/imgui/imgui_tables.cpp
