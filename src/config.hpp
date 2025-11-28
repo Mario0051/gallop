@@ -30,10 +30,6 @@
 	} /* toml */
 
 namespace gallop {
-// Model data
-extern std::unordered_map<int, int> dress2head;
-extern std::unordered_map<int, int> dress2mini;
-extern std::unordered_map<int, std::vector<int>> chara2dress;
 
 int init_config();
 

@@ -1,7 +1,8 @@
 #include "backend/imgui_impl_opengl3.h"
 #include "backend/imgui_impl_win32.h"
 #include "imgui.h"
-#include <memory>
+#include "mdb.hpp"
+#include <fmt/base.h>
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -10,6 +11,9 @@
 #include <GL/gl.h>
 #include <tchar.h>
 #include <windows.h>
+
+constexpr int window_width = 700;
+constexpr int window_height = 500;
 
 // Data stored per platform window
 struct WGL_WindowData {
@@ -27,6 +31,10 @@ bool CreateDeviceWGL(HWND hWnd, WGL_WindowData* data);
 void CleanupDeviceWGL(HWND hWnd, WGL_WindowData* data);
 void ResetDeviceWGL();
 LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
+
+// Import fonts
+#include "mplus1code.cpp"
+#include "notosans_jp.cpp"
 
 namespace gallop {
 bool show_demo_window = true;
@@ -47,10 +55,11 @@ int init()
 	float main_scale = ImGui_ImplWin32_GetDpiScaleForMonitor(::MonitorFromPoint(POINT{0, 0}, MONITOR_DEFAULTTOPRIMARY));
 
 	// Create application window
-	WNDCLASSEXW wc = {sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"ImGui Example", nullptr};
+	WNDCLASSEXW wc = {sizeof(wc), CS_OWNDC, WndProc, 0L, 0L, GetModuleHandle(nullptr), nullptr, nullptr, nullptr, nullptr, L"gallop", nullptr};
 	::RegisterClassExW(&wc);
-	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"CarrotJuicer", WS_OVERLAPPEDWINDOW, 100, 100, (int)(700 * main_scale), (int)(500 * main_scale), nullptr,
-								nullptr, wc.hInstance, nullptr);
+	HWND parent = ::FindWindow(nullptr, L"UmamusumePrettyDerby_Jpn");
+	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"CarrotJuicer", WS_POPUPWINDOW | WS_CAPTION, 100, 100, (int)(window_width * main_scale),
+								(int)(window_height * main_scale), parent, nullptr, wc.hInstance, nullptr);
 
 	HMENU hMenu = ::GetSystemMenu(hwnd, FALSE);
 	if (hMenu) {
@@ -97,31 +106,13 @@ int init()
 
 	spdlog::info("[gallop] Successfully initialized ImGUI interface!");
 
-	// Load Fonts
-	// - If no fonts are loaded, dear imgui will use the default font. You can
-	// also load multiple fonts and use ImGui::PushFont()/PopFont() to select
-	// them.
-	// - AddFontFromFileTTF() will return the ImFont* so you can store it if you
-	// need to select the font among multiple.
-	// - If the file cannot be loaded, the function will return a nullptr.
-	// Please handle those errors in your application (e.g. use an assertion, or
-	// display an error and quit).
-	// - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use
-	// Freetype for higher quality font rendering.
-	// - Read 'docs/FONTS.md' for more instructions and details. If you like the
-	// default font but want it to scale better, consider using the
-	// 'ProggyVector' from the same author!
-	// - Remember that in C/C++ if you want to include a backslash \ in a string
-	// literal you need to write a double backslash \\ !
-	// style.FontSizeBase = 20.0f;
-	// io.Fonts->AddFontDefault();
-	// io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf");
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf");
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf");
-	// io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf");
-	// ImFont* font =
-	// io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf");
-	// IM_ASSERT(font != nullptr);
+	ImFontConfig config;
+	// config.GlyphOffset.y = -1;
+	config.MergeMode = true;
+	style.FontSizeBase = 18.0f;
+	//  io.Fonts->AddFontDefault();
+	io.Fonts->AddFontFromMemoryCompressedBase85TTF(m_plus_1_code_compressed_data_base85);
+	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_jp_compressed_data_base85, 0.0f, &config);
 
 	// Our state
 	show_demo_window = true;
@@ -129,6 +120,17 @@ int init()
 	clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	return 0;
+}
+
+static void HelpMarker(const char* desc)
+{
+	ImGui::TextDisabled("(?)");
+	if (ImGui::BeginItemTooltip()) {
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+		ImGui::TextUnformatted(desc);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
 }
 
 int update_and_paint()
@@ -156,12 +158,119 @@ int update_and_paint()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::SetNextWindowSize({700, 500});
+	ImGui::SetNextWindowSize({window_width - 1, window_height - 1});
 	ImGui::SetNextWindowPos({0, 0});
-	if (ImGui::Begin("libgallop", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove)) {
+	if (ImGui::Begin("libgallop", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
 		if (ImGui::BeginTabBar("Main", ImGuiTabBarFlags_None)) {
 			if (ImGui::BeginTabItem("Log")) {
 				sink->Draw();
+				ImGui::EndTabItem();
+			}
+			if (ImGui::BeginTabItem("Configuration")) {
+				// Truly revolutionary variable names, haya
+				static char replaceInput[5];
+				static char replacereplaceInput[5];
+#define FORMAT_GET_OR_DEFAULT(dict, i) fmt::format("{} ({})", dict.contains(i) ? dict.at(i) : "???", i).c_str()
+				if (ImGui::CollapsingHeader("Override Characters")) {
+					for (auto& item : gallop::conf.replaceCharacters) {
+						if (ImGui::BeginPopup("newID")) {
+							if (ImGui::BeginCombo("Character ID", FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)))) {
+								static ImGuiTextFilter filter;
+								if (ImGui::IsWindowAppearing()) {
+									ImGui::SetKeyboardFocusHere();
+									filter.Clear();
+								}
+								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+								filter.Draw("##Filter", -FLT_MIN);
+								for (const auto& it : id2name) {
+									const std::string name = fmt::format("{} ({})", it.second, it.first);
+									const bool selected = std::stoi(item.first) == it.first;
+									if (filter.PassFilter(name.c_str())) {
+										if (ImGui::Selectable(name.c_str(), selected)) {
+											auto i = gallop::conf.replaceCharacters.extract(item.first);
+											i.key() = std::to_string(it.first);
+											gallop::conf.replaceCharacters.insert(std::move(i));
+										}
+									}
+								}
+								ImGui::EndCombo();
+							}
+							ImGui::EndPopup();
+						}
+						if (ImGui::BeginPopupContextItem("charaReplaceInfo")) {
+							if (ImGui::Selectable("Change Character")) {
+								ImGui::CloseCurrentPopup();
+								ImGui::OpenPopup("newID");
+							}
+							if (ImGui::Selectable("Remove")) {
+								gallop::conf.replaceCharacters.erase(item.first);
+								ImGui::CloseCurrentPopup();
+							}
+							ImGui::EndPopup();
+						}
+						// Maps id2name to a string array
+						if (ImGui::TreeNode(FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)))) {
+							if (ImGui::BeginCombo("New Character ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.charaId))) {
+								static ImGuiTextFilter filter;
+								if (ImGui::IsWindowAppearing()) {
+									ImGui::SetKeyboardFocusHere();
+									filter.Clear();
+								}
+								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+								filter.Draw("##Filter", -FLT_MIN);
+								for (const auto& it : id2name) {
+									const std::string name = fmt::format("{} ({})", it.second, it.first);
+									const bool selected = item.second.charaId == it.first;
+									if (filter.PassFilter(name.c_str())) {
+										if (ImGui::Selectable(name.c_str(), selected))
+											item.second.charaId = it.first;
+									}
+								}
+								ImGui::EndCombo();
+							}
+							if (ImGui::BeginCombo("New Dress ID", FORMAT_GET_OR_DEFAULT(id2dress, item.second.clothId))) {
+								static ImGuiTextFilter filter;
+								if (ImGui::IsWindowAppearing()) {
+									ImGui::SetKeyboardFocusHere();
+									filter.Clear();
+								}
+								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+								filter.Draw("##Filter", -FLT_MIN);
+								for (const auto& it : id2dress) {
+									// Will ONLY show valid dresses for a specified character
+									const std::string name = fmt::format("{} ({})", it.second, it.first);
+									const bool selected = item.second.clothId == it.first;
+									if (filter.PassFilter(name.c_str())) {
+										if (ImGui::Selectable(name.c_str(), selected))
+											item.second.clothId = it.first;
+									}
+								}
+								ImGui::EndCombo();
+							}
+							ImGui::SameLine();
+							HelpMarker("Setting this to Default will use the outfit already specified, if available.");
+							ImGui::Checkbox("Replace Mini Model", &item.second.replaceMini);
+							ImGui::Checkbox("Home Screen Only", &item.second.homeScreenOnly);
+							ImGui::TreePop();
+						}
+						ImGui::SameLine();
+						ImGui::OpenPopupOnItemClick("charaReplaceInfo", ImGuiPopupFlags_MouseButtonRight);
+					}
+					if (ImGui::Button("New Item...")) {
+						memset(replaceInput, 0, sizeof(replaceInput));
+						ImGui::OpenPopup("NewReplaceCharacter");
+					}
+					if (ImGui::BeginPopup("NewReplaceCharacter")) {
+						ImGui::InputText("Character ID", replaceInput, IM_ARRAYSIZE(replaceInput), ImGuiInputTextFlags_CharsDecimal);
+						ImGui::InputText("Replace ID", replacereplaceInput, IM_ARRAYSIZE(replacereplaceInput), ImGuiInputTextFlags_CharsDecimal);
+						if (ImGui::Button("Add Item")) {
+							gallop::conf.replaceCharacters.emplace(replaceInput, std::forward<gallop_char_info_s>({std::stoi(replacereplaceInput)}));
+							ImGui::CloseCurrentPopup();
+						}
+						ImGui::EndPopup();
+					}
+				}
+#undef FORMAT_GET_OR_DEFAULT
 				ImGui::EndTabItem();
 			}
 			ImGui::EndTabBar();
@@ -169,6 +278,8 @@ int update_and_paint()
 
 		ImGui::End();
 	}
+
+	ImGui::ShowMetricsWindow();
 
 	// Rendering
 	ImGui::Render();
