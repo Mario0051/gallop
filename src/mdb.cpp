@@ -1,8 +1,12 @@
 #include "gallop.hpp"
 #include <codecvt>
 #include <locale>
+#include <map>
+#include <nlohmann/json.hpp>
 #include <sqlite3mc.h>
 #include <sqlite_modern_cpp.h>
+#include <unordered_map>
+#include <utility>
 #include <windows.h>
 
 // Hardcoded for now
@@ -40,6 +44,12 @@ std::unordered_map<int, int> dress2head;
 std::unordered_map<int, int> dress2mini;
 // Maps character IDs to dress IDs
 std::unordered_map<int, std::vector<int>> chara2dress;
+
+// TODO these could probably be vectors instead...
+// Maps character IDs to character names
+std::map<int, std::string> id2name;
+// Maps dress IDs to dress names
+std::map<int, std::string> id2dress;
 
 int init_mdb()
 {
@@ -106,6 +116,46 @@ int init_mdb()
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] could not extract dress ids from master.mdb! {}", e.what());
 	}
+
+	// id2dress has 0 (no dress)
+	id2dress.emplace(0, "Default");
+
+	// Try querying character and dress names
+	// Use localized_data over a result from a query
+	if (std::filesystem::exists("hachimi\\localized_data") && std::filesystem::exists("hachimi\\localized_data\\text_data_dict.json")) {
+		using namespace nlohmann;
+		json j = json::parse(std::ifstream("hachimi\\localized_data\\text_data_dict.json"));
+		for (const auto& oid : j.value("6", std::unordered_map<std::string, std::string>())) {
+			const int id = std::stoi(oid.first);
+			const std::string name = oid.second;
+			id2name.emplace(id, name);
+		}
+		for (const auto& oid : j.value("14", std::unordered_map<std::string, std::string>())) {
+			const int id = std::stoi(oid.first);
+			const std::string name = oid.second;
+			id2dress.emplace(id, name);
+		}
+	}
+	// Now try a query for possibly missing names (untranslated)
+	try {
+		master << "SELECT id FROM chara_data" >> [&](int id) {
+			if (!id2name.contains(id))
+				master << "SELECT text FROM text_data WHERE `index` =? AND category=6" << id >> [&](std::string text) {
+					id2name.emplace(id, text);
+					spdlog::info("[mdb] Found untranslated character name! {}", text);
+				};
+		};
+		master << "SELECT id FROM dress_data" >> [&](int id) {
+			if (!id2dress.contains(id))
+				master << "SELECT text FROM text_data WHERE `index`=? AND category=14" << id >> [&](std::string text) {
+					id2dress.emplace(id, text);
+					spdlog::info("[mdb] Found untranslated dress name! {}", text);
+				};
+		};
+	} catch (const std::exception& e) {
+		spdlog::error("[mdb] could not extract character names from master.mdb! {}", e.what());
+	}
+	// Alright haya now hit the second tower
 
 	return 0;
 }
