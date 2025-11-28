@@ -52,6 +52,11 @@ int init()
 	HWND hwnd = ::CreateWindowW(wc.lpszClassName, L"CarrotJuicer", WS_OVERLAPPEDWINDOW, 100, 100, (int)(700 * main_scale), (int)(500 * main_scale), nullptr,
 								nullptr, wc.hInstance, nullptr);
 
+	HMENU hMenu = ::GetSystemMenu(hwnd, FALSE);
+	if (hMenu) {
+		::EnableMenuItem(hMenu, SC_CLOSE, MF_BYCOMMAND | MF_DISABLED | MF_GRAYED);
+	}
+
 	// Initialize OpenGL
 	if (!CreateDeviceWGL(hwnd, &g_MainWindow)) {
 		CleanupDeviceWGL(hwnd, &g_MainWindow);

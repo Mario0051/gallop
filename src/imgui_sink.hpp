@@ -10,6 +10,10 @@ namespace gui {
 class ImGuiSink : public spdlog::sinks::base_sink<std::mutex> {
   public:
 	void Draw();
+	void Append(const char* text) {
+		std::lock_guard<std::mutex> lock(mutex_);
+		log.append(text);
+	}
 
   protected:
 	ImGuiTextBuffer log;

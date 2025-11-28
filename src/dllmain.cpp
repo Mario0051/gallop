@@ -1,29 +1,56 @@
 #include <filesystem>
 #include <thread>
 #include <windows.h>
+#include <fstream>
 
 #include "gallop.hpp"
-#include "imgui_sink.hpp"
+#include "ipc_sink.hpp"
+#include "gui_binary.h"
 
 #include "MinHook.h"
 
 namespace gallop {
 std::shared_ptr<spdlog::logger> logger;
-std::shared_ptr<gui::imgui_sink_mt> sink;
 std::filesystem::path path;
+
+void ExtractAndRunGUI() {
+    wchar_t tempPath[MAX_PATH];
+    GetTempPathW(MAX_PATH, tempPath);
+    std::filesystem::path exePath = std::filesystem::path(tempPath) / "gallop_gui_embed.exe";
+
+    std::ofstream outfile(exePath, std::ios::binary);
+    outfile.write((const char*)gallop_gui_embed_exe, gallop_gui_embed_exe_len);
+    outfile.close();
+
+    STARTUPINFOW si = { sizeof(si) };
+    PROCESS_INFORMATION pi = { 0 };
+    if (CreateProcessW(exePath.c_str(), NULL, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    } else {
+        MessageBoxW(NULL, L"Failed to launch GUI process", L"Gallop Error", MB_OK | MB_ICONERROR);
+    }
+}
 
 void attach()
 {
+	ExtractAndRunGUI();
+
+	for (int i = 0; i < 200; i++) {
+		if (WaitNamedPipeW(L"\\\\.\\pipe\\GallopLogPipe", 1)) {
+			break;
+		}
+		std::this_thread::sleep_for(std::chrono::milliseconds(10));
+	}
+
 	// Initialize spdlog
-	sink = std::make_shared<gui::imgui_sink_mt>();
-	logger = std::make_shared<spdlog::logger>("base_logger", sink);
+	auto ipc_sink = std::make_shared<gallop::IpcSink>();
+	logger = std::make_shared<spdlog::logger>("base_logger", ipc_sink);
 
 	spdlog::set_default_logger(logger);
 	spdlog::set_pattern("[%l] %v");
 
 	spdlog::info("[gallop] Successfully attached!");
-
-	std::thread(gui::run).detach();
 
 	// Initialize config
 	init_config();

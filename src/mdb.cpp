@@ -61,7 +61,7 @@ int init_mdb()
 
 	// open up meta
 	try {
-		std::string path = utf8_encode(master_path);
+		std::string path = utf8_encode(meta_path);
 		sqlite::database db(path);
 		db << pragma_prepare;
 		meta = db;
