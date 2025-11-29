@@ -31,6 +31,8 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 	spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {})", charaID, dressID);
 	if (gallop::conf.replaceCharacters.contains(strId)) {
 		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(std::to_string(charaID));
+		if (charInfo.charaId == 0)
+			return false;
 		if (charaID == 9001 && charInfo.homeScreenOnly && controllerType == UmaControllerType::HomeStand)
 			return false; // Can't change Tazuna
 		if (controllerType == UmaControllerType::Mini && charInfo.replaceMini) {
@@ -97,8 +99,9 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 		if (gallop::dress2head.contains(dressID))
 			headID = gallop::dress2head.at(dressID);
 		spdlog::info("[hooks/models] Successfully replaced character! (charaID: {}, dressID: {})", charaID, dressID);
+		return true;
 	}
-	return true;
+	return false;
 }
 
 bool ReplaceCharacterController(int& cardID, int& charaID, int& dressID, int& headID, UmaControllerType controllerType)

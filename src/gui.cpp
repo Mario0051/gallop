@@ -146,7 +146,7 @@ int init()
 	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_symbols_compressed_data_base85, 0.0f, &config);
 	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_symbols2_compressed_data_base85, 0.0f, &config);
 	config.GlyphMinAdvanceX = style.FontSizeBase;
-	config.GlyphOffset.y = 4.0f;
+	config.GlyphOffset.y = 3.0f;
 	io.Fonts->AddFontFromMemoryCompressedBase85TTF(lucide_compressed_data_base85, 0.0f, &config);
 
 	// Our state
@@ -159,7 +159,7 @@ int init()
 
 static void HelpMarker(const char* desc)
 {
-	ImGui::TextDisabled("(?)");
+	ImGui::TextDisabled(ICON_LC_CIRCLE_QUESTION_MARK);
 	if (ImGui::BeginItemTooltip()) {
 		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
 		ImGui::TextUnformatted(desc);
@@ -181,6 +181,32 @@ bool TreeNodeWithWidth(const char* label, ImGuiTreeNodeFlags flags = 0, float wi
 	bool ret = ImGui::TreeNodeEx(label, flags);
 	window->WorkRect.Max.x = backup_work_max_x;
 	return ret;
+}
+
+// This is horrid but I am never making this a macro that would suck even more
+template <typename T, typename U>
+void ImGuiComboFromDictionaryWithFilter(std::string label, std::string preview_value, std::map<T, U> dict, std::function<std::string(T, U)> value_name_func,
+										std::function<bool(T, U)> selected_cond, std::function<void(T, U)> selection_func, ImGuiComboFlags flags = 0)
+{
+	if (ImGui::BeginCombo(label.c_str(), preview_value.c_str(), flags)) {
+		static ImGuiTextFilter filter;
+		if (ImGui::IsWindowAppearing()) {
+			ImGui::SetKeyboardFocusHere();
+			filter.Clear();
+		}
+		ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+		filter.Draw("##Filter", -FLT_MIN);
+		for (const auto& [k, v] : dict) {
+			std::string name = value_name_func(k, v);
+			bool selected = selected_cond(k, v);
+			if (filter.PassFilter(name.c_str())) {
+				if (ImGui::Selectable(name.c_str(), selected)) {
+					selection_func(k, v);
+				}
+			}
+		}
+		ImGui::EndCombo();
+	}
 }
 
 int update_and_paint()
@@ -218,45 +244,24 @@ int update_and_paint()
 				ImGui::EndTabItem();
 			}
 			if (ImGui::BeginTabItem("Configuration")) {
-				// Truly revolutionary variable names, haya
-				static char replaceInput[5];
-				static char replacereplaceInput[5];
+				static int newChar = 0;
 #define FORMAT_GET_OR_DEFAULT(dict, i) fmt::format("{} ({})", dict.contains(i) ? dict.at(i) : "???", i).c_str()
 				if (ImGui::CollapsingHeader("Override Characters")) {
 					for (auto& item : gallop::conf.replaceCharacters) {
 						if (ImGui::BeginPopup("newID")) {
-							if (ImGui::BeginCombo("Character ID", FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)))) {
-								static ImGuiTextFilter filter;
-								if (ImGui::IsWindowAppearing()) {
-									ImGui::SetKeyboardFocusHere();
-									filter.Clear();
-								}
-								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
-								filter.Draw("##Filter", -FLT_MIN);
-								for (const auto& it : id2name) {
-									const std::string name = fmt::format("{} ({})", it.second, it.first);
-									const bool selected = std::stoi(item.first) == it.first;
-									if (filter.PassFilter(name.c_str())) {
-										if (ImGui::Selectable(name.c_str(), selected)) {
-											auto i = gallop::conf.replaceCharacters.extract(item.first);
-											i.key() = std::to_string(it.first);
-											gallop::conf.replaceCharacters.insert(std::move(i));
-										}
-									}
-								}
-								ImGui::EndCombo();
-							}
-							ImGui::EndPopup();
-						}
-						if (ImGui::BeginPopupContextItem("charaReplaceInfo")) {
-							if (ImGui::Selectable("Change Character")) {
-								ImGui::CloseCurrentPopup();
-								ImGui::OpenPopup("newID");
-							}
-							if (ImGui::Selectable("Remove")) {
-								gallop::conf.replaceCharacters.erase(item.first);
-								ImGui::CloseCurrentPopup();
-							}
+							ImGuiComboFromDictionaryWithFilter<int, std::string>(
+								"Character ID", FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)), id2name,
+								[&](int key, std::string value) { return fmt::format("{} ({})", value, key); },
+								[&](int key, std::string value) {
+									(void)value;
+									return std::stoi(item.first) == key;
+								},
+								[&](int key, std::string value) {
+									(void)value;
+									auto i = gallop::conf.replaceCharacters.extract(item.first);
+									i.key() = std::to_string(key);
+									gallop::conf.replaceCharacters.insert(std::move(i));
+								});
 							ImGui::EndPopup();
 						}
 						// Buttons n such
@@ -264,47 +269,43 @@ int update_and_paint()
 														 -ImGuiButtonWidths({ICON_LC_PENCIL, ICON_LC_X}));
 						ImGui::SameLine();
 						ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, style.ItemSpacing.x / 2.f);
-						IMGUI_RIGHT_ALIGNED_BUTTONS([&](int idx) { (void)idx; }, ICON_LC_PENCIL, ICON_LC_X);
+						IMGUI_RIGHT_ALIGNED_BUTTONS(
+							[&](int idx) {
+								switch (idx) {
+								case 0:
+									ImGui::OpenPopup("newID");
+									break;
+								case 1:
+									gallop::conf.replaceCharacters.erase(item.first);
+									break;
+								}
+							},
+							ICON_LC_PENCIL, ICON_LC_X);
 						ImGui::PopStyleVar();
+						ImGui::NewLine();
 						if (success) {
-							ImGui::NewLine();
-							if (ImGui::BeginCombo("New Character ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.charaId))) {
-								static ImGuiTextFilter filter;
-								if (ImGui::IsWindowAppearing()) {
-									ImGui::SetKeyboardFocusHere();
-									filter.Clear();
-								}
-								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
-								filter.Draw("##Filter", -FLT_MIN);
-								for (const auto& it : id2name) {
-									const std::string name = fmt::format("{} ({})", it.second, it.first);
-									const bool selected = item.second.charaId == it.first;
-									if (filter.PassFilter(name.c_str())) {
-										if (ImGui::Selectable(name.c_str(), selected))
-											item.second.charaId = it.first;
-									}
-								}
-								ImGui::EndCombo();
-							}
-							if (ImGui::BeginCombo("New Dress ID", FORMAT_GET_OR_DEFAULT(id2dress, item.second.clothId))) {
-								static ImGuiTextFilter filter;
-								if (ImGui::IsWindowAppearing()) {
-									ImGui::SetKeyboardFocusHere();
-									filter.Clear();
-								}
-								ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
-								filter.Draw("##Filter", -FLT_MIN);
-								for (const auto& it : id2dress) {
-									// Will ONLY show valid dresses for a specified character
-									const std::string name = fmt::format("{} ({})", it.second, it.first);
-									const bool selected = item.second.clothId == it.first;
-									if (filter.PassFilter(name.c_str())) {
-										if (ImGui::Selectable(name.c_str(), selected))
-											item.second.clothId = it.first;
-									}
-								}
-								ImGui::EndCombo();
-							}
+							ImGuiComboFromDictionaryWithFilter<int, std::string>(
+								"New Character ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.charaId), id2name,
+								[&](int key, std::string value) { return fmt::format("{} ({})", value, key); },
+								[&](int key, std::string value) {
+									(void)value;
+									return item.second.charaId == key;
+								},
+								[&](int key, std::string value) {
+									(void)value;
+									item.second.charaId = key;
+								});
+							ImGuiComboFromDictionaryWithFilter<int, std::string>(
+								"New Dress ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.clothId), id2name,
+								[&](int key, std::string value) { return fmt::format("{} ({})", value, key); },
+								[&](int key, std::string value) {
+									(void)value;
+									return item.second.clothId == key;
+								},
+								[&](int key, std::string value) {
+									(void)value;
+									item.second.clothId = key;
+								});
 							ImGui::SameLine();
 							HelpMarker("Setting this to Default will use the outfit already specified, if available.");
 							ImGui::Checkbox("Replace Mini Model", &item.second.replaceMini);
@@ -315,15 +316,24 @@ int update_and_paint()
 
 					// IMGUI_RIGHT_ALIGNED_BUTTONS("X")
 
-					if (ImGui::Button("New Item...")) {
-						memset(replaceInput, 0, sizeof(replaceInput));
+					if (ImGui::Button("New Override...")) {
+						newChar = 0;
 						ImGui::OpenPopup("NewReplaceCharacter");
 					}
 					if (ImGui::BeginPopup("NewReplaceCharacter")) {
-						ImGui::InputText("Character ID", replaceInput, IM_ARRAYSIZE(replaceInput), ImGuiInputTextFlags_CharsDecimal);
-						ImGui::InputText("Replace ID", replacereplaceInput, IM_ARRAYSIZE(replacereplaceInput), ImGuiInputTextFlags_CharsDecimal);
-						if (ImGui::Button("Add Item")) {
-							gallop::conf.replaceCharacters.emplace(replaceInput, std::forward<gallop_char_info_s>({std::stoi(replacereplaceInput)}));
+						ImGuiComboFromDictionaryWithFilter<int, std::string>(
+							"Character ID", FORMAT_GET_OR_DEFAULT(id2name, newChar), id2name,
+							[&](int key, std::string value) { return fmt::format("{} ({})", value, key); },
+							[&](int key, std::string value) {
+								(void)value;
+								return newChar == key;
+							},
+							[&](int key, std::string value) {
+								(void)value;
+								newChar = key;
+							});
+						if (ImGui::Button("Add Override")) {
+							gallop::conf.replaceCharacters.emplace(std::to_string(newChar), std::forward<gallop_char_info_s>({}));
 							ImGui::CloseCurrentPopup();
 						}
 						ImGui::EndPopup();

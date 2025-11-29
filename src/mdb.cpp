@@ -117,6 +117,8 @@ int init_mdb()
 		spdlog::error("[mdb] could not extract dress ids from master.mdb! {}", e.what());
 	}
 
+	// id2name has 0 (none)
+	id2name.emplace(0, "None");
 	// id2dress has 0 (no dress)
 	id2dress.emplace(0, "Default");
 
