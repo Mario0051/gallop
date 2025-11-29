@@ -296,7 +296,7 @@ int update_and_paint()
 									item.second.charaId = key;
 								});
 							ImGuiComboFromDictionaryWithFilter<int, std::string>(
-								"New Dress ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.clothId), id2name,
+								"New Dress ID", FORMAT_GET_OR_DEFAULT(id2dress, item.second.clothId), id2dress,
 								[&](int key, std::string value) { return fmt::format("{} ({})", value, key); },
 								[&](int key, std::string value) {
 									(void)value;
