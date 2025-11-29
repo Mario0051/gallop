@@ -1,6 +1,8 @@
 #include "backend/imgui_impl_opengl3.h"
 #include "backend/imgui_impl_win32.h"
+#include "config.hpp"
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "mdb.hpp"
 #include <fmt/base.h>
 
@@ -9,6 +11,7 @@
 #endif
 #include "gallop.hpp"
 #include <GL/gl.h>
+#include <functional>
 #include <tchar.h>
 #include <windows.h>
 
@@ -34,7 +37,39 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 // Import fonts
 #include "mplus1code.cpp"
-#include "notosans_jp.cpp"
+// Google is there a need for 2 separate fonts for symbols
+#include "notosans_symbols.cpp"
+#include "notosans_symbols2.cpp"
+// Lucide for icons
+#include "lucide.cpp" // Don't ask.
+#include "lucide.h"
+
+float ImGuiButtonWidths(const std::vector<std::string>& buttons)
+{
+	ImGuiStyle& style = ImGui::GetStyle();
+	float width = 0.0f;
+	for (const auto& item : buttons) {
+		width += ImGui::CalcTextSize(item.c_str()).x + (style.FramePadding.x * 2.f) + style.ItemSpacing.x;
+	}
+	width -= style.ItemSpacing.x;
+	return width;
+}
+
+#define IMGUI_RIGHT_ALIGNED_BUTTONS(func, ...)                                                                                                                 \
+	{                                                                                                                                                          \
+		ImGuiStyle& style = ImGui::GetStyle();                                                                                                                 \
+		std::vector<std::string> arr = {__VA_ARGS__};                                                                                                          \
+		float width = ::ImGuiButtonWidths(arr);                                                                                                                \
+		auto f = func;                                                                                                                                         \
+		ImGui::SetCursorPosX(ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x - width + (style.FramePadding.x));                                      \
+		for (size_t i = 0; i < arr.size(); i++) {                                                                                                              \
+			std::string item = arr[i];                                                                                                                         \
+			if (ImGui::Button(item.c_str())) {                                                                                                                 \
+				f(i);                                                                                                                                          \
+			}                                                                                                                                                  \
+			ImGui::SameLine();                                                                                                                                 \
+		}                                                                                                                                                      \
+	}
 
 namespace gallop {
 bool show_demo_window = true;
@@ -79,6 +114,7 @@ int init()
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
 	(void)io;
+	io.IniFilename = NULL;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
@@ -107,7 +143,11 @@ int init()
 	style.FontSizeBase = 18.0f;
 	//  io.Fonts->AddFontDefault();
 	io.Fonts->AddFontFromMemoryCompressedBase85TTF(m_plus_1_code_compressed_data_base85);
-	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_jp_compressed_data_base85, 0.0f, &config);
+	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_symbols_compressed_data_base85, 0.0f, &config);
+	io.Fonts->AddFontFromMemoryCompressedBase85TTF(notosans_symbols2_compressed_data_base85, 0.0f, &config);
+	config.GlyphMinAdvanceX = style.FontSizeBase;
+	config.GlyphOffset.y = 4.0f;
+	io.Fonts->AddFontFromMemoryCompressedBase85TTF(lucide_compressed_data_base85, 0.0f, &config);
 
 	// Our state
 	show_demo_window = true;
@@ -126,6 +166,21 @@ static void HelpMarker(const char* desc)
 		ImGui::PopTextWrapPos();
 		ImGui::EndTooltip();
 	}
+}
+
+bool TreeNodeWithWidth(const char* label, ImGuiTreeNodeFlags flags = 0, float width = 0.0f)
+{
+	if (width == 0.0f)
+		return ImGui::TreeNodeEx(label, flags);
+
+	ImGuiContext& g = *GImGui;
+	ImGuiWindow* window = g.CurrentWindow;
+	ImGui::SetNextItemWidth(width);
+	float backup_work_max_x = window->WorkRect.Max.x;
+	window->WorkRect.Max.x = window->DC.CursorPos.x + ImGui::CalcItemWidth();
+	bool ret = ImGui::TreeNodeEx(label, flags);
+	window->WorkRect.Max.x = backup_work_max_x;
+	return ret;
 }
 
 int update_and_paint()
@@ -153,8 +208,9 @@ int update_and_paint()
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 
-	ImGui::SetNextWindowSize({window_width - 1, window_height - 1});
+	ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 	ImGui::SetNextWindowPos({0, 0});
+	ImGuiStyle& style = ImGui::GetStyle();
 	if (ImGui::Begin("libgallop", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
 		if (ImGui::BeginTabBar("Main", ImGuiTabBarFlags_None)) {
 			if (ImGui::BeginTabItem("Log")) {
@@ -203,8 +259,15 @@ int update_and_paint()
 							}
 							ImGui::EndPopup();
 						}
-						// Maps id2name to a string array
-						if (ImGui::TreeNode(FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)))) {
+						// Buttons n such
+						bool success = TreeNodeWithWidth(FORMAT_GET_OR_DEFAULT(id2name, std::stoi(item.first)), ImGuiTreeNodeFlags_Framed,
+														 -ImGuiButtonWidths({ICON_LC_PENCIL, ICON_LC_X}));
+						ImGui::SameLine();
+						ImGui::PushStyleVarX(ImGuiStyleVar_ItemSpacing, style.ItemSpacing.x / 2.f);
+						IMGUI_RIGHT_ALIGNED_BUTTONS([&](int idx) { (void)idx; }, ICON_LC_PENCIL, ICON_LC_X);
+						ImGui::PopStyleVar();
+						if (success) {
+							ImGui::NewLine();
 							if (ImGui::BeginCombo("New Character ID", FORMAT_GET_OR_DEFAULT(id2name, item.second.charaId))) {
 								static ImGuiTextFilter filter;
 								if (ImGui::IsWindowAppearing()) {
@@ -248,9 +311,10 @@ int update_and_paint()
 							ImGui::Checkbox("Home Screen Only", &item.second.homeScreenOnly);
 							ImGui::TreePop();
 						}
-						ImGui::SameLine();
-						ImGui::OpenPopupOnItemClick("charaReplaceInfo", ImGuiPopupFlags_MouseButtonRight);
 					}
+
+					// IMGUI_RIGHT_ALIGNED_BUTTONS("X")
+
 					if (ImGui::Button("New Item...")) {
 						memset(replaceInput, 0, sizeof(replaceInput));
 						ImGui::OpenPopup("NewReplaceCharacter");
@@ -265,6 +329,14 @@ int update_and_paint()
 						ImGui::EndPopup();
 					}
 				}
+				ImGui::Separator();
+				if (ImGui::Button("Load Config")) {
+					gallop::init_config();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("Save Config")) {
+					gallop::save_config();
+				}
 #undef FORMAT_GET_OR_DEFAULT
 				ImGui::EndTabItem();
 			}
@@ -274,7 +346,7 @@ int update_and_paint()
 		ImGui::End();
 	}
 
-	ImGui::ShowMetricsWindow();
+	// ImGui::ShowMetricsWindow();
 
 	// Rendering
 	ImGui::Render();

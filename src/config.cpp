@@ -30,11 +30,17 @@ int init_config()
 	}
 
 	conf = toml::get<gallop_config_s>(toml_file);
-	spdlog::info("[config] checking replaceCharacters");
-	for (const auto& i : conf.replaceCharacters) {
-		spdlog::info("[config] replaceCharacters[{}]", i.first);
-		spdlog::info("[config] charaId: {}", i.second.charaId);
-	}
+
+	return 0;
+}
+
+int save_config()
+{
+	const std::string path = "hachimi\\gallop_config.toml";
+	std::ofstream f;
+	f.open(path, std::ofstream::out | std::ofstream::trunc);
+	toml::value toml = conf;
+	f << toml::format(toml);
 
 	return 0;
 }
