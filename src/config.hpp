@@ -32,6 +32,7 @@
 namespace gallop {
 
 int init_config();
+int save_config();
 
 typedef struct gallop_char_info_s {
 	int charaId = 0;

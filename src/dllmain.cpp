@@ -3,6 +3,7 @@
 #include <windows.h>
 #include <fstream>
 
+#include "discord.hpp"
 #include "gallop.hpp"
 #include "ipc_sink.hpp"
 #include "gui_binary.h"
@@ -59,6 +60,7 @@ void attach()
 		return;
 	}
 	il2cpp::init();
+	discord::initialize();
 	MH_EnableHook(MH_ALL_HOOKS);
 	init_mdb();
 }
@@ -66,6 +68,7 @@ void detach()
 {
 	MH_DisableHook(MH_ALL_HOOKS);
 	MH_Uninitialize();
+	discord::deinitialize();
 	deinit_mdb();
 }
 } // namespace gallop

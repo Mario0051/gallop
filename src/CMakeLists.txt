@@ -53,9 +53,11 @@ target_sources(
     hook.cpp
     config.cpp
     mdb.cpp
+    discord.cpp
 
     # Hooks
     hooks/models.cpp
+    hooks/menu.cpp
 )
 
 add_dependencies(gallop generate_gui_header)
