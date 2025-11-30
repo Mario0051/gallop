@@ -33,8 +33,6 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(std::to_string(charaID));
 		if (charInfo.charaId == 0)
 			return false;
-		if (charaID == 9001 && charInfo.homeScreenOnly && controllerType == UmaControllerType::HomeStand)
-			return false; // Can't change Tazuna
 		if (controllerType == UmaControllerType::Mini && charInfo.replaceMini) {
 			if (gallop::dress2mini.contains(dressID) && gallop::dress2mini.contains(dressID)) {
 				charaID = charInfo.charaId;
