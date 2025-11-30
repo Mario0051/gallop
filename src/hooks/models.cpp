@@ -28,8 +28,8 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 	if (dressID < 100000)
 		replaceDress = false;
 	std::string strId = std::to_string(charaID);
-	spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {})", charaID, dressID);
 	if (gallop::conf.replaceCharacters.contains(strId)) {
+		spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {})", charaID, dressID);
 		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(std::to_string(charaID));
 		if (charInfo.charaId == 0)
 			return false;
@@ -182,7 +182,7 @@ GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 	SET_FIELD_AND_READ(_this, this_class, headModelSubId, int)
 	SET_FIELD_AND_READ(_this, this_class, motionDressId, int)
 
-	spdlog::info("[hooks/models] Call from Gallop::CharacterBuildInfo.Rebuild (charaID: {}, dressID: {})", charaId, dressId);
+	// spdlog::info("[hooks/models] Call from Gallop::CharacterBuildInfo.Rebuild (charaID: {}, dressID: {})", charaId, dressId);
 
 	// Call ReplaceCharacterController and write all fields
 	if (ReplaceCharacterController(charaId, dressId, headModelSubId, static_cast<UmaControllerType>(controllerType))) {
