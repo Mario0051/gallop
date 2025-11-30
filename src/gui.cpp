@@ -1,6 +1,7 @@
 #include "backend/imgui_impl_opengl3.h"
 #include "backend/imgui_impl_win32.h"
 #include "config.hpp"
+#include "image.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "mdb.hpp"
@@ -44,6 +45,9 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #include "lucide.cpp" // Don't ask.
 #include "lucide.h"
 
+// Import images (in png format)
+#include "gallop_logo.h"
+
 float ImGuiButtonWidths(const std::vector<std::string>& buttons)
 {
 	ImGuiStyle& style = ImGui::GetStyle();
@@ -83,6 +87,9 @@ ImGuiIO io;
 WNDCLASSEXW wc;
 
 namespace gui {
+// Store gallop logo here
+GallopImage gallop_logo;
+
 int init()
 {
 	// Make process DPI aware and obtain main monitor scale
@@ -154,6 +161,12 @@ int init()
 	show_another_window = false;
 	clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
+	// Load images
+	LoadTextureFromMemory(gallop_logo_data, gallop_logo_data_len, gallop_logo);
+	// bool ret = LoadTextureFromMemoryCompressed(gallop_logo_compressed_data, gallop_logo_compressed_size, gallop_logo);
+	// if (!ret)
+	//	spdlog::error("[gui] Failed to create logo image!");
+
 	return 0;
 }
 
@@ -185,8 +198,10 @@ bool TreeNodeWithWidth(const char* label, ImGuiTreeNodeFlags flags = 0, float wi
 
 // This is horrid but I am never making this a macro that would suck even more
 template <typename T, typename U>
-void ImGuiComboFromDictionaryWithFilter(std::string label, std::string preview_value, std::map<T, U> dict, std::function<std::string(T, U)> value_name_func,
-										std::function<bool(T, U)> selected_cond, std::function<void(T, U)> selection_func, ImGuiComboFlags flags = 0)
+void ImGuiComboFromDictionaryWithFilter(
+	std::string label, std::string preview_value, std::map<T, U> dict, std::function<std::string(T, U)> value_name_func,
+	std::function<bool(T, U)> selected_cond, std::function<void(T, U)> selection_func, ImGuiComboFlags flags = 0,
+	std::function<bool(T, U)> should_add_func = [](T, U) { return true; })
 {
 	if (ImGui::BeginCombo(label.c_str(), preview_value.c_str(), flags)) {
 		static ImGuiTextFilter filter;
@@ -199,7 +214,7 @@ void ImGuiComboFromDictionaryWithFilter(std::string label, std::string preview_v
 		for (const auto& [k, v] : dict) {
 			std::string name = value_name_func(k, v);
 			bool selected = selected_cond(k, v);
-			if (filter.PassFilter(name.c_str())) {
+			if (filter.PassFilter(name.c_str()) && should_add_func(k, v)) {
 				if (ImGui::Selectable(name.c_str(), selected)) {
 					selection_func(k, v);
 				}
@@ -239,10 +254,13 @@ int update_and_paint()
 	ImGuiStyle& style = ImGui::GetStyle();
 	if (ImGui::Begin("libgallop", NULL, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoDecoration)) {
 		if (ImGui::BeginTabBar("Main", ImGuiTabBarFlags_None)) {
+			// Current log n stuff
 			if (ImGui::BeginTabItem("Log")) {
 				sink->Draw();
 				ImGui::EndTabItem();
 			}
+			// Configuration
+			// TODO move this to a separate function
 			if (ImGui::BeginTabItem("Configuration")) {
 				static int newChar = 0;
 				std::vector<std::string> removed;
@@ -309,6 +327,12 @@ int update_and_paint()
 								[&](int key, std::string value) {
 									(void)value;
 									item.second.clothId = key;
+								},
+								0,
+								[&](int key, std::string value) {
+									(void)value;
+									// Filter out dress IDs compatible with the current character ID
+									return key < 100000 || std::to_string(key).find(std::to_string(item.second.charaId)) != std::string::npos;
 								});
 							ImGui::SameLine();
 							HelpMarker("Setting this to Default will use the outfit already specified, if available.");
@@ -347,7 +371,6 @@ int update_and_paint()
 						ImGui::EndPopup();
 					}
 				}
-			end_early:
 				ImGui::Separator();
 				if (ImGui::Button("Load Config")) {
 					gallop::init_config();
@@ -359,6 +382,39 @@ int update_and_paint()
 #undef FORMAT_GET_OR_DEFAULT
 				ImGui::EndTabItem();
 			}
+			// About section
+			if (ImGui::BeginTabItem("About")) {
+				ImGui::SetCursorPosX((ImGui::GetWindowSize().x - gallop_logo.width) * 0.5f);
+				ImGui::Image((ImTextureID)(intptr_t)gallop_logo.data, ImVec2(gallop_logo.width, gallop_logo.height));
+				ImGui::Separator();
+				ImGui::Text(R"V0G0N(
+					Trainers' Gallop U
+					Version 0.1-NOTFORPROD
+					Created by Yonii Hayasaka (haya).
+				)V0G0N");
+				ImGui::Separator();
+				ImGui::Text(R"V0G0N(
+					Libraries used:
+					- Dear ImGui (ocornut/imgui)
+					- Aetherim (modified for Umamusume) (Toxocious/Aetherim)
+					- JSON for Modern C++ (nlohmann/json)
+					- MinHook (TsudaKageyu/minhook)
+					- spdlog (gabime/spdlog)
+					- toml11 (ToruNiina/toml11)
+					- Discord RPC (harmonytf/discord-rpc)
+					- {fmt} (fmtlib/fmt)
+					- SQLite3 Multiple Ciphers (utelle/SQLite3MultipleCiphers)
+				)V0G0N");
+				ImGui::Separator();
+				ImGui::Text(R"V0G0N(
+					Special thanks to:
+					- jack
+					- Mario9581
+					- Hachimi Discord
+				)V0G0N");
+				ImGui::EndTabItem();
+			}
+			// #endregion
 			ImGui::EndTabBar();
 		}
 

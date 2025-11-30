@@ -87,7 +87,7 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 						}
 					}
 					// If we are referring to an alt outfit and we dont have a matching one, default to the base outfit if we have it
-					if (has_seen_default) {
+					if (has_seen_default && dressID == 5) {
 						spdlog::info("[hooks/models] Fallback race outfit for character ID {} ({})", charaID, (charaID * 100) + 1);
 						dressID = (charaID * 100) + 1;
 					}
