@@ -84,6 +84,13 @@ GALLOP_HOOK_DEF(EditableCharacterBuildInfo_ctor, void,
 				 bool isUseDressDataHeadModelSubId, bool isEnableModelCache, int chara_dress_color_set_id))
 
 void init_model_hooks();
+
+// Menu related hooks //
+
+// HomeViewController.ChangeHeader
+GALLOP_HOOK_DEF(HomeViewController_ChangeHeader, void, (void* _this, int state, int displayTypeId, void* onComplete))
+
+void init_menu_hooks();
 } // namespace hooks
 } // namespace il2cpp
 } // namespace gallop

@@ -1,8 +1,8 @@
+#include "hook.hpp"
 #include "aetherim/api.hpp"
 #include "aetherim/wrapper.hpp"
 #include "gallop.hpp"
 #include <MinHook.h>
-#include <safetyhook/easy.hpp>
 #include <windows.h>
 
 #include <filesystem>
@@ -372,6 +372,7 @@ int init()
 	spdlog::info("[gallop] Initialized umamusume.dll image");
 
 	hooks::init_model_hooks();
+	hooks::init_menu_hooks();
 	return 0;
 }
 
