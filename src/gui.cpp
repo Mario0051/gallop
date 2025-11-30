@@ -4,6 +4,7 @@
 #include "image.hpp"
 #include "imgui.h"
 #include "imgui_internal.h"
+#include "incbin.h"
 #include "mdb.hpp"
 #include <fmt/base.h>
 
@@ -46,7 +47,7 @@ LRESULT WINAPI WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
 #include "lucide.h"
 
 // Import images (in png format)
-#include "gallop_logo.h"
+INCBIN(gallopLogo, "../assets/logo.png");
 
 float ImGuiButtonWidths(const std::vector<std::string>& buttons)
 {
@@ -162,7 +163,7 @@ int init()
 	clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
 	// Load images
-	LoadTextureFromMemory(gallop_logo_data, gallop_logo_data_len, gallop_logo);
+	LoadTextureFromMemory(ggallopLogoData, ggallopLogoSize, gallop_logo);
 	// bool ret = LoadTextureFromMemoryCompressed(gallop_logo_compressed_data, gallop_logo_compressed_size, gallop_logo);
 	// if (!ret)
 	//	spdlog::error("[gui] Failed to create logo image!");
