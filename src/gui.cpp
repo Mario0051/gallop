@@ -386,7 +386,7 @@ int update_and_paint()
 			// About section
 			if (ImGui::BeginTabItem("About")) {
 				ImGui::SetCursorPosX((ImGui::GetWindowSize().x - gallop_logo.width) * 0.5f);
-				ImGui::Image((ImTextureID)(intptr_t)gallop_logo.data, ImVec2(gallop_logo.width, gallop_logo.height));
+				ImGui::Image(gallop_logo.image(), gallop_logo.size());
 				ImGui::Separator();
 				ImGui::Text(R"V0G0N(
 					Trainers' Gallop U
