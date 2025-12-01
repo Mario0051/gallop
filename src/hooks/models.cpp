@@ -28,13 +28,13 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 	if (dressID < 100000)
 		replaceDress = false;
 	std::string strId = std::to_string(charaID);
-	spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {})", charaID, dressID);
 	if (gallop::conf.replaceCharacters.contains(strId)) {
+		spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {}, controller Type {})", charaID, dressID, (int)controllerType);
 		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(std::to_string(charaID));
 		if (charInfo.charaId == 0)
 			return false;
-		if (charaID == 9001 && charInfo.homeScreenOnly && controllerType == UmaControllerType::HomeStand)
-			return false; // Can't change Tazuna
+		if (charInfo.homeScreenOnly && (controllerType < UmaControllerType::HomeStand || controllerType > UmaControllerType::HomeWalk))
+			return false;
 		if (controllerType == UmaControllerType::Mini && charInfo.replaceMini) {
 			if (gallop::dress2mini.contains(dressID) && gallop::dress2mini.contains(dressID)) {
 				charaID = charInfo.charaId;
@@ -87,7 +87,7 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 						}
 					}
 					// If we are referring to an alt outfit and we dont have a matching one, default to the base outfit if we have it
-					if (has_seen_default) {
+					if (has_seen_default && dressID == 5) {
 						spdlog::info("[hooks/models] Fallback race outfit for character ID {} ({})", charaID, (charaID * 100) + 1);
 						dressID = (charaID * 100) + 1;
 					}
@@ -184,7 +184,7 @@ GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 	SET_FIELD_AND_READ(_this, this_class, headModelSubId, int)
 	SET_FIELD_AND_READ(_this, this_class, motionDressId, int)
 
-	spdlog::info("[hooks/models] Call from Gallop::CharacterBuildInfo.Rebuild (charaID: {}, dressID: {})", charaId, dressId);
+	// spdlog::info("[hooks/models] Call from Gallop::CharacterBuildInfo.Rebuild (charaID: {}, dressID: {})", charaId, dressId);
 
 	// Call ReplaceCharacterController and write all fields
 	if (ReplaceCharacterController(charaId, dressId, headModelSubId, static_cast<UmaControllerType>(controllerType))) {

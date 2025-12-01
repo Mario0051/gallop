@@ -5,7 +5,7 @@
 #include <toml11/serializer.hpp>
 
 namespace gallop {
-gallop_config_t default_config = {{}};
+gallop_config_t default_config = {true, {}};
 gallop_config_t conf;
 
 int init_config()

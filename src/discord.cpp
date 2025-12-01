@@ -1,4 +1,5 @@
 #include "discord.hpp"
+#include "config.hpp"
 #include <ctime>
 #include <discord_rpc.h>
 #include <spdlog/spdlog.h>
@@ -40,6 +41,9 @@ void deinitialize()
 
 void setRichPresence(std::string state, std::string details, std::string largeImageKey, std::string largeImageText, time_t start)
 {
+	if (!gallop::conf.discordRPC)
+		return;
+
 	DiscordRichPresence discordPresence;
 	memset(&discordPresence, 0, sizeof(discordPresence));
 

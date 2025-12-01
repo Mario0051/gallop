@@ -323,7 +323,11 @@ std::unordered_map<std::string, std::string> generate_symbol_map()
 	WCHAR buffer[MAX_PATH];
 	const std::filesystem::path module_path(std::wstring(buffer, GetModuleFileName(nullptr, buffer, MAX_PATH)));
 	std::wstring folder_path = module_path.parent_path();
-	folder_path += L"\\UnityPlayer.dll";
+	// Load original UnityPlayer.dll from the hachimi folder if it exists
+	if (std::filesystem::exists("hachimi\\UnityPlayer_orig.dll"))
+		folder_path += L"\\hachimi\\UnityPlayer_orig.dll";
+	else
+		folder_path += L"\\UnityPlayer.dll";
 
 	filemap f(folder_path);
 
@@ -345,7 +349,7 @@ std::unordered_map<std::string, std::string> generate_symbol_map()
 }
 
 // Symbol map given an rva
-static std::unordered_map<std::string, std::string> SYMBOL_MAP = generate_symbol_map();
+static std::unordered_map<std::string, std::string> SYMBOL_MAP;
 
 // Wrapper for some il2cpp functions
 std::unique_ptr<Wrapper> wrapper;
@@ -354,6 +358,9 @@ Image* umaimg;
 
 int init()
 {
+	// Initialize this here
+	SYMBOL_MAP = generate_symbol_map();
+
 	// Initialize wrapper and point main image to umamusume.dll
 	Il2cpp::initialize(SYMBOL_MAP);
 

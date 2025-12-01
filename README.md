@@ -1,6 +1,7 @@
 <div align="center">
 
-# Trainers' Gallop U
+![logo](assets/logo.png)
+
 > A hachimi module
 
 **Trainers' Gallop U** (or libgallop) is a [Hachimi](https://hachimi.noccu.art/) module that adds some features similar to the original [Trainers' Legend G](https://github.com/MinamiChiwa/Trainers-Legend-G) to enhance the ウマ娘プリティーダービー (Umamusume: Pretty Derby) experience.
@@ -28,6 +29,8 @@ This module is meant to be used with [Hachimi(-Edge)](https://hachimi.noccu.art/
 
 This module works on Windows 10 and Linux (via Proton). Linux users will need to use a patched out executable and Proton versions compatible with Umamusume (GE-Proton 10-12 or Proton-CachyOS).
 
+As of current reports, this may or may not work with DMM. Some Hachimi versions will crash with this module enabled due to GUI conflicts, so make sure to disable the GUI if you're having startup crashes!
+
 1. Install Hachimi, setting up DLL redirection if needed.
 2. In the `hachimi` folder (appears once the game is launched with Hachimi atleast once), edit `config.json` and add the path to the CarrotJuicer dll to `load_libraries`.
 ```json
@@ -40,8 +43,24 @@ This module works on Windows 10 and Linux (via Proton). Linux users will need to
 
 ## Config
 
-TODO
+Configuration is saved in `hachimi/gallop_config.toml`.
+
+```toml
+# Enables discord RPC (if applicable)
+discordRPC = true
+
+# Lists characters to replace visually, by key
+[replaceCharacters]
+# For example, this would replace character ID 1067
+[replaceCharacters.1067]
+charaId = 1100 # Replaces them with character ID 1100
+clothId = 5 # Forcibly changes all clothes used by this character to dress ID 5
+replaceMini = true # Also replaces mini model if available
+homeScreenOnly = false # Determines if this character is only replaced in the home screen
+```
 
 ## License
 
-This repository and all of its contents are under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+Code is licensed under the [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.en.html).
+
+Other miscellaneous assets are licensed under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).

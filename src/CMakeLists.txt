@@ -54,6 +54,7 @@ target_sources(
     config.cpp
     mdb.cpp
     discord.cpp
+    image.cpp
 
     # Hooks
     hooks/models.cpp

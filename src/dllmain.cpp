@@ -60,7 +60,8 @@ void attach()
 		return;
 	}
 	il2cpp::init();
-	discord::initialize();
+	if (conf.discordRPC)
+		discord::initialize();
 	MH_EnableHook(MH_ALL_HOOKS);
 	init_mdb();
 }
@@ -68,7 +69,8 @@ void detach()
 {
 	MH_DisableHook(MH_ALL_HOOKS);
 	MH_Uninitialize();
-	discord::deinitialize();
+	if (conf.discordRPC)
+		discord::deinitialize();
 	deinit_mdb();
 }
 } // namespace gallop

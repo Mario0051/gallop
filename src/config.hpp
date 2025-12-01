@@ -44,6 +44,7 @@ typedef struct gallop_char_info_s {
 } gallop_char_info_t;
 
 typedef struct gallop_config_s {
+	bool discordRPC = true;
 	std::unordered_map<std::string, gallop_char_info_t> replaceCharacters;
 	// TOML11_INTO_TOML(gallop_config_s, replaceCharacters)
 	// TOML11_FROM_TOML(gallop_config_s, replaceCharacters)
@@ -63,4 +64,4 @@ template <typename T, typename TC> void assign_member_variable_to_value(const T&
 } // namespace gallop
 
 TOML11_DEFINE_CONVERSION_NON_INTRUSIVE_WITH_DEFAULT(gallop::gallop_char_info_s, charaId, clothId, replaceMini, homeScreenOnly)
-TOML11_DEFINE_CONVERSION_NON_INTRUSIVE_WITH_DEFAULT(gallop::gallop_config_s, replaceCharacters)
+TOML11_DEFINE_CONVERSION_NON_INTRUSIVE_WITH_DEFAULT(gallop::gallop_config_s, discordRPC, replaceCharacters)

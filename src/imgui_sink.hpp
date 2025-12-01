@@ -20,6 +20,9 @@ class ImGuiSink : public spdlog::sinks::base_sink<std::mutex> {
 
 	void sink_it_(const spdlog::details::log_msg& msg) override;
 	void flush_() override;
+
+  private:
+	bool _scroll = false;
 };
 
 using imgui_sink_mt = ImGuiSink;
