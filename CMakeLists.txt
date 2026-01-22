@@ -51,6 +51,12 @@ CPMAddPackage(
     GIT_TAG main
     OPTIONS "SQLITE3MC_STATIC ON; SQLITE3MC_STATIC_RUNTIME_LINK ON"
 )
+CPMAddPackage(
+    NAME safetyhook
+    GITHUB_REPOSITORY cursey/safetyhook
+    GIT_TAG main
+    OPTIONS "SAFETYHOOK_FETCH_ZYDIS ON"
+)
 # OpenGL manages the GUI portion
 find_package(OpenGL REQUIRED)
 

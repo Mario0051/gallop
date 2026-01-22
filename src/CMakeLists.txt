@@ -3,6 +3,8 @@ add_executable(gallop_gui WIN32
     gui.cpp 
     imgui_sink.cpp
 
+    image.cpp
+
     config.cpp
     mdb.cpp
 
@@ -19,6 +21,7 @@ target_include_directories(gallop_gui PRIVATE
     "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/imgui"
     "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/aetherim"
     "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/sqlite_modern_cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/../thirdparty/incbin"
 )
 
 target_link_options(gallop_gui PRIVATE -static)
@@ -27,6 +30,8 @@ target_link_libraries(gallop_gui PRIVATE
     spdlog::spdlog 
     opengl32 
     dwmapi
+    toml11::toml11
+    fmt::fmt
     nlohmann_json::nlohmann_json
     safetyhook
     minhook
