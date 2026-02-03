@@ -1,6 +1,5 @@
 #pragma once
 
-#include "imgui_sink.hpp"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
 #include "sqlite3mc.h"
@@ -9,11 +8,9 @@
 #include <string>
 #include <toml.hpp>
 #include <unordered_map>
+#include <filesystem>
 
-#include "config.hpp"
-#include "gui.hpp"
-#include "hook.hpp"
-#include "mdb.hpp"
+#include "hachimi_api.h"
 
 // Defines the gallop namespace.
 
@@ -23,9 +20,12 @@ void attach();
 // runs when gallop is detached
 void detach();
 
+void init_gui_integration();
+
 extern std::filesystem::path path;
 
-// sink and logger
+// logger
 extern std::shared_ptr<spdlog::logger> logger;
-extern std::shared_ptr<gui::imgui_sink_mt> sink;
 } // namespace gallop
+
+extern const HachimiVtable* g_hachimi;

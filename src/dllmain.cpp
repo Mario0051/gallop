@@ -1,65 +1,95 @@
 #include <filesystem>
+#include <mutex>
 #include <thread>
 #include <windows.h>
 
+#include "config.hpp"
 #include "discord.hpp"
 #include "gallop.hpp"
-#include "imgui_sink.hpp"
+#include "hachimi_api.h"
+#include "mdb.hpp"
+#include "hook.hpp"
 
-#include "MinHook.h"
+#include "spdlog/sinks/base_sink.h"
+
+const HachimiVtable* g_hachimi = nullptr;
 
 namespace gallop {
 std::shared_ptr<spdlog::logger> logger;
-std::shared_ptr<gui::imgui_sink_mt> sink;
 std::filesystem::path path;
+
+template <typename Mutex>
+class hachimi_sink : public spdlog::sinks::base_sink<Mutex> {
+  protected:
+	void sink_it_(const spdlog::details::log_msg& msg) override
+	{
+		if (!g_hachimi)
+			return;
+
+		spdlog::memory_buf_t formatted;
+		spdlog::sinks::base_sink<Mutex>::formatter_->format(msg, formatted);
+
+		int32_t level = 3;
+		if (msg.level == spdlog::level::err)
+			level = 1;
+		else if (msg.level == spdlog::level::warn)
+			level = 2;
+		else if (msg.level == spdlog::level::debug)
+			level = 4;
+		else if (msg.level == spdlog::level::trace)
+			level = 5;
+
+		g_hachimi->log(level, "gallop", fmt::to_string(formatted).c_str());
+	}
+
+	void flush_() override {}
+};
 
 void attach()
 {
-	// Initialize spdlog
-	sink = std::make_shared<gui::imgui_sink_mt>();
-	logger = std::make_shared<spdlog::logger>("base_logger", sink);
-
-	spdlog::set_default_logger(logger);
-	spdlog::set_pattern("[%l] %v");
-
-	spdlog::info("[gallop] Successfully attached!");
-
-	std::thread(gui::run).detach();
+	spdlog::info("[gallop] Attaching...");
 
 	// Initialize config
 	init_config();
-	if (MH_Initialize() != MH_OK) {
-		spdlog::error("[gallop] Failed to initialize minhook!");
+
+	if (il2cpp::init() != 0) {
+		spdlog::error("[gallop] Failed to initialize il2cpp!");
 		return;
 	}
-	il2cpp::init();
+
 	if (conf.discordRPC)
 		discord::initialize();
-	MH_EnableHook(MH_ALL_HOOKS);
+
 	init_mdb();
+
+	init_gui_integration();
+
+	spdlog::info("[gallop] Initialization complete!");
 }
+
 void detach()
 {
-	MH_DisableHook(MH_ALL_HOOKS);
-	MH_Uninitialize();
 	if (conf.discordRPC)
 		discord::deinitialize();
 	deinit_mdb();
 }
 } // namespace gallop
 
-BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
+extern "C" __declspec(dllexport) InitResult hachimi_init(const HachimiVtable* vtable, int version)
 {
-	WCHAR buffer[MAX_PATH];
-	const std::filesystem::path module_path(std::wstring(buffer, GetModuleFileName(nullptr, buffer, MAX_PATH)));
-	if (module_path.filename() == L"umamusume.exe" || module_path.filename() == L"UmamusumePrettyDerby_Jpn.exe") {
-		current_path(module_path.parent_path());
-		gallop::path = module_path.parent_path();
+	g_hachimi = vtable;
 
-		if (ul_reason_for_call == DLL_PROCESS_ATTACH)
-			std::thread(gallop::attach).detach();
-		if (ul_reason_for_call == DLL_PROCESS_DETACH)
-			gallop::detach();
-	}
-	return TRUE;
+	// Initialize spdlog
+	auto hachimi_logger_sink = std::make_shared<gallop::hachimi_sink<std::mutex>>();
+	gallop::logger = std::make_shared<spdlog::logger>("base_logger", hachimi_logger_sink);
+	spdlog::set_default_logger(gallop::logger);
+	spdlog::set_pattern("[%l] %v");
+
+	gallop::path = std::filesystem::current_path();
+
+	spdlog::info("[gallop] Hachimi init (Version: {})", version);
+
+	gallop::attach();
+
+	return InitResult::Ok;
 }

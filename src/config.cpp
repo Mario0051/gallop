@@ -1,47 +1,62 @@
+#include "config.hpp"
 #include "gallop.hpp"
-#include <filesystem>
 #include <fstream>
-#include <toml.hpp>
-#include <toml11/serializer.hpp>
+#include <spdlog/spdlog.h>
+#include <filesystem>
 
 namespace gallop {
+
 gallop_config_t default_config = {true, {}};
 gallop_config_t conf;
 
 int init_config()
 {
-	const std::string path = "hachimi\\gallop_config.toml";
-	toml::value toml_file;
+	std::filesystem::path config_dir = gallop::path / "hachimi";
+	std::filesystem::path config_path = config_dir / "gallop_config.toml";
 
-	if (!std::filesystem::exists(path)) {
-		spdlog::info("[config] No config found, generating gallop_config.toml");
+	if (!std::filesystem::exists(config_path)) {
+		spdlog::info("[config] No config found, generating hachimi/gallop_config.toml");
 
-		if (!std::filesystem::exists("hachimi\\"))
-			std::filesystem::create_directory("hachimi\\");
+		if (!std::filesystem::exists(config_dir)) {
+			std::error_code ec;
+			std::filesystem::create_directory(config_dir, ec);
+			if (ec) {
+				 spdlog::error("[config] Failed to create directory: {}", ec.message());
+				 return 1;
+			}
+		}
 
-		toml_file = default_config;
-		std::ofstream f;
-		f.open(path, std::ofstream::out | std::ofstream::trunc);
-		f << toml::format(toml_file);
-		f.close();
-	} else {
-		spdlog::info("[config] Config found (gallop_config.toml)");
-		toml_file = toml::parse(path);
+		conf = default_config;
+		save_config();
+		return 0;
 	}
 
-	conf = toml::get<gallop_config_s>(toml_file);
-
+	try {
+		spdlog::info("[config] Loading config from {}", config_path.string());
+		auto toml_file = toml::parse(config_path.string());
+		conf = toml::get<gallop_config_s>(toml_file);
+	} catch (std::exception& e) {
+		spdlog::error("[gallop] Config error: {}", e.what());
+		conf = default_config;
+		return 1;
+	}
 	return 0;
 }
 
 int save_config()
 {
-	const std::string path = "hachimi\\gallop_config.toml";
-	std::ofstream f;
-	f.open(path, std::ofstream::out | std::ofstream::trunc);
-	toml::value toml = conf;
-	f << toml::format(toml);
+	std::filesystem::path config_dir = gallop::path / "hachimi";
+	std::filesystem::path config_path = config_dir / "gallop_config.toml";
 
+	if (!std::filesystem::exists(config_dir)) {
+		 std::filesystem::create_directory(config_dir);
+	}
+
+	toml::value toml_data = conf;
+	std::ofstream file(config_path);
+	if (!file.is_open()) return 1;
+	file << toml_data;
 	return 0;
 }
+
 } // namespace gallop

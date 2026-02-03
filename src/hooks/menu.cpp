@@ -1,6 +1,7 @@
 #include "discord.hpp"
 #include "gallop.hpp"
 #include "hook.hpp"
+#include <spdlog/spdlog.h>
 
 enum class HomeTopState {
 	None = 0,
@@ -20,10 +21,12 @@ enum class HomeTopState {
 namespace gallop {
 namespace il2cpp {
 namespace hooks {
+
 GALLOP_SETUP_HOOK_FOR_FUNC(HomeViewController_ChangeHeader, void)(void* _this, int state, int displayTypeId, void* onComplete)
 {
 	spdlog::info("[hooks/menu] Changed home state! {}", state);
 	HomeTopState newState = static_cast<HomeTopState>(state);
+
 	switch (newState) {
 	case HomeTopState::MyPage:
 	case HomeTopState::LoginBonus:
@@ -55,6 +58,7 @@ void init_menu_hooks()
 	HomeViewController_ChangeHeader_orig =
 		gallop::il2cpp::create_hook("Gallop", "HomeViewController", "ChangeHeader", 3, reinterpret_cast<void*>(HomeViewController_ChangeHeader_hook));
 }
+
 } // namespace hooks
 } // namespace il2cpp
 } // namespace gallop

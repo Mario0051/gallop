@@ -1,6 +1,14 @@
-#include "aetherim/field.hpp"
 #include "gallop.hpp"
-#include <aetherim/api.hpp>
+#include "hook.hpp"
+#include "hachimi_api.h"
+#include "config.hpp"
+#include "mdb.hpp"
+#include <string>
+#include <string>
+#include <spdlog/spdlog.h>
+
+using namespace gallop;
+using namespace gallop::il2cpp;
 
 enum class UmaControllerType {
 	Default = 0x0,
@@ -25,23 +33,19 @@ enum class UmaControllerType {
 bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaControllerType controllerType)
 {
 	bool replaceDress = true;
-	if (dressID < 100000)
-		replaceDress = false;
+	if (dressID < 100000) replaceDress = false;
 	std::string strId = std::to_string(charaID);
 	if (gallop::conf.replaceCharacters.contains(strId)) {
 		spdlog::info("[hooks/models] Attempting to replace model for character ID {} (dress ID {}, controller Type {})", charaID, dressID, (int)controllerType);
-		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(std::to_string(charaID));
-		if (charInfo.charaId == 0)
-			return false;
+		gallop::gallop_char_info_t charInfo = gallop::conf.replaceCharacters.at(strId);
+		if (charInfo.charaId == 0) return false;
 		if (charInfo.homeScreenOnly && (controllerType < UmaControllerType::HomeStand || controllerType > UmaControllerType::HomeWalk))
 			return false;
 		if (controllerType == UmaControllerType::Mini && charInfo.replaceMini) {
-			if (gallop::dress2mini.contains(dressID) && gallop::dress2mini.contains(dressID)) {
+			if (gallop::dress2mini.contains(dressID)) {
 				charaID = charInfo.charaId;
-				if (replaceDress)
-					dressID = charInfo.clothId;
-				if (gallop::dress2head.contains(dressID))
-					headID = gallop::dress2head.at(dressID);
+				if (replaceDress) dressID = charInfo.clothId;
+				if (gallop::dress2head.contains(dressID)) headID = gallop::dress2head.at(dressID);
 			}
 			spdlog::info("[hooks/models] Successfully replaced mini character! (charaID: {}, dressID: {})", charaID, dressID);
 			return true;
@@ -57,18 +61,15 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 			if (gallop::chara2dress.contains(charaID)) {
 				// Handle casual outfits separately
 				if (dressID >= 900000) {
-					spdlog::info("[hooks/models] Finding casual outfit for character ID {}", charaID);
 					// Default to school outfit if none was found!
 					dressID = 5;
 					for (auto& dress : gallop::chara2dress.at(charaID)) {
 						if (dress >= 900000) {
-							spdlog::info("[hooks/models] Found casual outfit for character ID {} ({})", charaID, dress);
 							dressID = dress;
 							break;
 						}
 					}
 				} else if (dressID >= 100000) {
-					spdlog::info("[hooks/models] Finding race outfit for character ID {}", charaID);
 					// All other outfits use the format <chara_id><race_outfit_id>
 					// For now assume that all character IDs are 4 characters long
 					std::string strDressID = std::to_string(dressID).substr(4);
@@ -78,27 +79,21 @@ bool ReplaceCharacterController(int& charaID, int& dressID, int& headID, UmaCont
 					for (auto& dress : gallop::chara2dress.at(charaID)) {
 						int dressID2 = std::stoi(std::to_string(dress).substr(4));
 						// Found first outfit
-						if (dressID2 == 1)
-							has_seen_default = true;
+						if (dressID2 == 1) has_seen_default = true;
 						if (dressID2 == std::stoi(strDressID)) {
-							spdlog::info("[hooks/models] Found race outfit for character ID {} ({})", charaID, dress);
 							dressID = dress;
 							break;
 						}
 					}
 					// If we are referring to an alt outfit and we dont have a matching one, default to the base outfit if we have it
 					if (has_seen_default && dressID == 5) {
-						spdlog::info("[hooks/models] Fallback race outfit for character ID {} ({})", charaID, (charaID * 100) + 1);
 						dressID = (charaID * 100) + 1;
 					}
-				} else {
-					spdlog::info("[hooks/models] No special outfits needed for character ID {}", charaID);
 				}
 			}
 		}
 		if (gallop::dress2head.contains(dressID))
 			headID = gallop::dress2head.at(dressID);
-		spdlog::info("[hooks/models] Successfully replaced character! (charaID: {}, dressID: {})", charaID, dressID);
 		return true;
 	}
 	return false;
@@ -120,25 +115,6 @@ bool ReplaceCharacterController(int& cardID, int& charaID, int& dressID, int& he
 namespace gallop {
 namespace il2cpp {
 namespace hooks {
-
-void* get_class_from_instance(const void* instance) { return *static_cast<void* const*>(std::assume_aligned<alignof(void*)>(instance)); }
-template <typename T = void*>
-	requires std::is_trivial_v<T>
-T read_field(const void* ptr, const Field* field)
-{
-	T result;
-	const auto fieldPtr = static_cast<const std::byte*>(ptr) + field->get_offset();
-	std::memcpy(std::addressof(result), fieldPtr, sizeof(T));
-	return result;
-}
-
-template <typename T>
-	requires std::is_trivial_v<T>
-void write_field(void* ptr, const Field* field, const T& value)
-{
-	const auto fieldPtr = static_cast<std::byte*>(ptr) + field->get_offset();
-	std::memcpy(fieldPtr, std::addressof(value), sizeof(T));
-}
 
 GALLOP_SETUP_HOOK_FOR_FUNC(StoryCharacter3D_LoadModel, void)(int charaId, int cardId, int clothId, int zekkenNumber, int headId, bool isWet, bool isDirt,
 															 int mobId, int dressColorId, int charaDressColorSetId, void* zekkenName, int zekkenFontStyle,
@@ -168,13 +144,17 @@ GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_ctor_1, void)(void* _this, int car
 													   charaDressColorSetId);
 }
 
-#define SET_FIELD_AND_READ(_this, this_class, var, type)                                                                                                       \
-	static Field* var##_field = reinterpret_cast<Field*>(Il2cpp::get_field(this_class, (std::string("_") + std::string(#var)).c_str()));                       \
-	auto var = read_field<type>(_this, var##_field);
+#define SET_FIELD_AND_READ(_this, this_class, var, type) \
+	static FieldInfo* var##_field = nullptr; \
+	if (!var##_field) { \
+		var##_field = g_hachimi->il2cpp_get_field_from_name((Il2CppClass*)this_class, ("_" + std::string(#var)).c_str()); \
+	} \
+	auto var = gallop::il2cpp::read_field<type>(_this, var##_field);
 
 GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 {
-	static void* this_class = get_class_from_instance(_this);
+	void* this_class = gallop::il2cpp::get_class_from_instance(_this);
+	if (!this_class) return GALLOP_CALL_ORIG(CharacterBuildInfo_Rebuild)(_this);
 
 	// Define all the values from this class
 	SET_FIELD_AND_READ(_this, this_class, cardId, int)
@@ -184,15 +164,13 @@ GALLOP_SETUP_HOOK_FOR_FUNC(CharacterBuildInfo_Rebuild, void)(void* _this)
 	SET_FIELD_AND_READ(_this, this_class, headModelSubId, int)
 	SET_FIELD_AND_READ(_this, this_class, motionDressId, int)
 
-	// spdlog::info("[hooks/models] Call from Gallop::CharacterBuildInfo.Rebuild (charaID: {}, dressID: {})", charaId, dressId);
-
 	// Call ReplaceCharacterController and write all fields
 	if (ReplaceCharacterController(charaId, dressId, headModelSubId, static_cast<UmaControllerType>(controllerType))) {
-		write_field(_this, charaId_field, charaId);
-		write_field(_this, dressId_field, dressId);
-		write_field(_this, headModelSubId_field, headModelSubId);
-		write_field(_this, motionDressId_field, dressId);
-		write_field(_this, cardId_field, -1);
+		gallop::il2cpp::write_field(_this, charaId_field, charaId);
+		gallop::il2cpp::write_field(_this, dressId_field, dressId);
+		gallop::il2cpp::write_field(_this, headModelSubId_field, headModelSubId);
+		gallop::il2cpp::write_field(_this, motionDressId_field, dressId);
+		gallop::il2cpp::write_field(_this, cardId_field, -1);
 	}
 
 	return GALLOP_CALL_ORIG(CharacterBuildInfo_Rebuild)(_this);

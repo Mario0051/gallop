@@ -1,9 +1,10 @@
 #pragma once
 
-#include <aetherim/field.hpp>
-#include <aetherim/wrapper.hpp>
 #include <memory>
 #include <string>
+#include <cstring>
+#include <type_traits>
+#include "hachimi_api.h"
 
 // Various defines to define new hooks.
 // clang-format off
@@ -20,10 +21,6 @@
 namespace gallop {
 // IL2CPP handling
 namespace il2cpp {
-// Wrapper for some il2cpp functions
-extern std::unique_ptr<Wrapper> wrapper;
-// umamusume.dll image
-extern Image* umaimg;
 
 // Inits the il2cpp functions
 int init();
@@ -35,23 +32,21 @@ void* create_hook(std::string namespaze, std::string class_name, std::string met
 void* get_class_from_instance(const void* instance);
 
 // Reads a field from a class, field taken from an instance.
-template <typename T = void*>
-	requires std::is_trivial_v<T>
-T read_field(const void* ptr, const Field* field)
+template <typename T>
+T read_field(void* obj, FieldInfo* field)
 {
+	if (!obj || !field || !g_hachimi) return T{};
 	T result;
-	const auto fieldPtr = static_cast<const std::byte*>(ptr) + field->get_offset();
-	std::memcpy(std::addressof(result), fieldPtr, sizeof(T));
+	g_hachimi->il2cpp_get_field_value((Il2CppObject*)obj, field, &result);
 	return result;
 }
 
 // Writes a field to a class, field taken from an instance.
 template <typename T>
-	requires std::is_trivial_v<T>
-void write_field(void* ptr, const Field* field, const T& value)
+void write_field(void* obj, FieldInfo* field, const T& value)
 {
-	const auto fieldPtr = static_cast<std::byte*>(ptr) + field->get_offset();
-	std::memcpy(fieldPtr, std::addressof(value), sizeof(T));
+	if (!obj || !field || !g_hachimi) return;
+	g_hachimi->il2cpp_set_field_value((Il2CppObject*)obj, field, &value);
 }
 
 // hooks
@@ -59,10 +54,10 @@ namespace hooks {
 // Model hooks //
 
 // StoryCharacter3D.LoadModel
-GALLOP_HOOK_DEF(StoryCharacter3D_LoadModel, void,
-				(int charaId, int cardId, int clothId, int zekkenNumber, int headId, bool isWet, bool isDirt, int mobId, int dressColorId,
-				 int charaDressColorSetId, void* zekkenName, int zekkenFontStyle, int color, int fontColor, int suitColor, bool isUseDressDataHeadModelSubId,
-				 bool useCircleShadow, int wetTexturePartsFlag))
+	GALLOP_HOOK_DEF(StoryCharacter3D_LoadModel, void,
+					(int charaId, int cardId, int clothId, int zekkenNumber, int headId, bool isWet, bool isDirt, int mobId, int dressColorId,
+					 int charaDressColorSetId, void* zekkenName, int zekkenFontStyle, int color, int fontColor, int suitColor, bool isUseDressDataHeadModelSubId,
+					 bool useCircleShadow, int wetTexturePartsFlag))
 // SingleModeSceneController.CreateModel
 GALLOP_HOOK_DEF(SingleModeSceneController_CreateModel, void*, (void* _this, int cardId, int dressId, bool addVoiceCue))
 // CharacterBuildInfo() (1)
