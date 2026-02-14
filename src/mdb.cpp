@@ -35,9 +35,6 @@ std::wstring utf8_decode(const std::string& in)
 }
 
 namespace gallop {
-sqlite::database master;
-sqlite::database meta;
-
 // Maps dresses to head IDs
 std::unordered_map<int, int> dress2head;
 // Maps dresses to mini dress existence
@@ -57,13 +54,16 @@ int init_mdb()
 	std::wstring master_path = gallop::path.wstring() + std::wstring(utf8_decode(MASTER_PATH)),
 				 meta_path = gallop::path.wstring() + std::wstring(utf8_decode(META_PATH));
 
+	sqlite::database master;
+	sqlite::database meta;
+	sqlite::sqlite_config config;
+	config.flags = sqlite::OpenFlags::READONLY;
+
 	// Open up master.mdb
 	try {
 		std::string path = utf8_encode(master_path);
-		sqlite::database db(path);
+		master = sqlite::database(path, config);
 		spdlog::error("[mdb] master.mdb: {}", path);
-		// db << pragma_prepare;
-		master = db;
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] master.mdb could not be opened! {}", e.what());
 		return 1;
@@ -72,9 +72,8 @@ int init_mdb()
 	// open up meta
 	try {
 		std::string path = utf8_encode(meta_path);
-		sqlite::database db(path);
-		db << pragma_prepare;
-		meta = db;
+		meta = sqlite::database(path, config);
+		meta << pragma_prepare;
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] meta could not be opened! {}", e.what());
 		return 1;

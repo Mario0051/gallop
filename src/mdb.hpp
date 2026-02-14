@@ -12,8 +12,6 @@ extern std::map<int, std::string> id2name;
 extern std::map<int, std::string> id2dress;
 
 // database handling (master.mdb and meta)
-extern sqlite::database master;
-extern sqlite::database meta;
 int init_mdb();
 void deinit_mdb();
 
