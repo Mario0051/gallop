@@ -11,6 +11,7 @@
 #include "hook.hpp"
 
 #include "spdlog/sinks/base_sink.h"
+#include "spdlog/pattern_formatter.h"
 
 const HachimiVtable* g_hachimi = nullptr;
 
@@ -39,7 +40,8 @@ class hachimi_sink : public spdlog::sinks::base_sink<Mutex> {
 		else if (msg.level == spdlog::level::trace)
 			level = 5;
 
-		g_hachimi->log(level, "gallop", fmt::to_string(formatted).c_str());
+		formatted.push_back('\0'); 
+		g_hachimi->log(level, "gallop", formatted.data());
 	}
 
 	void flush_() override {}
@@ -83,7 +85,8 @@ extern "C" __declspec(dllexport) InitResult hachimi_init(const HachimiVtable* vt
 	auto hachimi_logger_sink = std::make_shared<gallop::hachimi_sink<std::mutex>>();
 	gallop::logger = std::make_shared<spdlog::logger>("base_logger", hachimi_logger_sink);
 	spdlog::set_default_logger(gallop::logger);
-	spdlog::set_pattern("[%l] %v");
+	auto formatter = std::make_unique<spdlog::pattern_formatter>("[%l] %v", spdlog::pattern_time_type::local, "");
+	spdlog::set_formatter(std::move(formatter));
 
 	gallop::path = std::filesystem::current_path();
 
