@@ -50,10 +50,22 @@ static void add_new_checkboxes_gui(void* ui, void* userdata) {
     g_hachimi->gui_ui_checkbox(ui, "Home Only", &new_home_only);
 }
 
+struct EditState {
+    bool expanded = false;
+    char orig_chara[64] = "";
+    char target_chara[64] = "";
+    char target_dress[64] = "";
+    bool initialized = false;
+};
+
+static std::unordered_map<std::string, EditState> edit_states;
+
 struct RowContext {
     const std::string* key;
     gallop::gallop_char_info_t* info;
+    EditState* state;
     bool remove_clicked;
+    bool apply_rename_clicked;
 };
 
 static std::string fmt_chara_display(int id) {
@@ -69,6 +81,11 @@ static void item_header_gui(void* ui, void* userdata) {
 
     std::string label = fmt::format("{} -> {}", fmt_chara_display(orig_id), fmt_chara_display(ctx->info->charaId));
     g_hachimi->gui_ui_label(ui, label.c_str());
+
+    std::string edit_label = ctx->state->expanded ? fmt::format("▼ Edit##{}", *ctx->key) : fmt::format("▶ Edit##{}", *ctx->key);
+    if (g_hachimi->gui_ui_button(ui, edit_label.c_str())) {
+        ctx->state->expanded = !ctx->state->expanded;
+    }
 
     std::string btn_label = fmt::format("Remove##{}", *ctx->key);
     if (g_hachimi->gui_ui_button(ui, btn_label.c_str())) {
@@ -169,20 +186,56 @@ void render_gallop_settings(void* ui, void* userdata) {
         g_hachimi->gui_ui_separator(ui);
 
         std::vector<std::string> to_remove;
+        std::vector<std::pair<std::string, std::string>> to_rename;
 
         for (auto& [key, info] : gallop::conf.replaceCharacters) {
-            RowContext ctx = { &key, &info, false };
+            EditState& state = edit_states[key];
+
+            if (!state.initialized) {
+                snprintf(state.orig_chara, sizeof(state.orig_chara), "%s", key.c_str());
+
+                if (info.charaId != 0) snprintf(state.target_chara, sizeof(state.target_chara), "%d", info.charaId);
+                else state.target_chara[0] = '\0';
+
+                if (info.clothId != 0) snprintf(state.target_dress, sizeof(state.target_dress), "%d", info.clothId);
+                else state.target_dress[0] = '\0';
+
+                state.initialized = true;
+            }
+
+            RowContext ctx = { &key, &info, &state, false, false };
 
             g_hachimi->gui_ui_horizontal(ui, item_header_gui, &ctx);
 
-            std::string info_str;
-            if (info.clothId != 0) {
-                std::string dname = get_dress_name_simple(info.clothId);
-                info_str = fmt::format("Dress: {} ({})", dname, info.clothId);
+            if (state.expanded) {
+                g_hachimi->gui_ui_small(ui, "Base Character ID to Replace:");
+
+                auto edit_base_id_gui = [](void* inner_ui, void* userdata) {
+                    auto* c = static_cast<RowContext*>(userdata);
+                    g_hachimi->gui_ui_text_edit_singleline(inner_ui, c->state->orig_chara, sizeof(c->state->orig_chara));
+                    if (g_hachimi->gui_ui_button(inner_ui, "Apply Base ID")) {
+                        c->apply_rename_clicked = true;
+                    }
+                };
+                g_hachimi->gui_ui_horizontal(ui, edit_base_id_gui, &ctx);
+
+                g_hachimi->gui_ui_small(ui, "Target Character ID:");
+                g_hachimi->gui_ui_text_edit_singleline(ui, state.target_chara, sizeof(state.target_chara));
+                info.charaId = parse_id(state.target_chara); 
+
+                g_hachimi->gui_ui_small(ui, "Target Dress ID (0 for Default):");
+                g_hachimi->gui_ui_text_edit_singleline(ui, state.target_dress, sizeof(state.target_dress));
+                info.clothId = parse_id(state.target_dress); 
             } else {
-                info_str = "Dress: Default/Auto";
+                std::string info_str;
+                if (info.clothId != 0) {
+                    std::string dname = get_dress_name_simple(info.clothId);
+                    info_str = fmt::format("Dress: {} ({})", dname, info.clothId);
+                } else {
+                    info_str = "Dress: Default/Auto";
+                }
+                g_hachimi->gui_ui_small(ui, info_str.c_str());
             }
-            g_hachimi->gui_ui_small(ui, info_str.c_str());
 
             g_hachimi->gui_ui_horizontal(ui, item_flags_gui, &ctx);
 
@@ -191,10 +244,28 @@ void render_gallop_settings(void* ui, void* userdata) {
             if (ctx.remove_clicked) {
                 to_remove.push_back(key);
             }
+            if (ctx.apply_rename_clicked) {
+                std::string new_key(state.orig_chara);
+                if (!new_key.empty() && new_key != key) {
+                    to_rename.push_back({key, new_key});
+                }
+            }
         }
 
         for (const auto& key : to_remove) {
             gallop::conf.replaceCharacters.erase(key);
+            edit_states.erase(key);
+        }
+
+        for (const auto& [old_k, new_k] : to_rename) {
+            if (gallop::conf.replaceCharacters.contains(new_k)) continue; 
+
+            auto node = gallop::conf.replaceCharacters.extract(old_k);
+            node.key() = new_k;
+            gallop::conf.replaceCharacters.insert(std::move(node));
+
+            edit_states[new_k] = edit_states[old_k];
+            edit_states.erase(old_k);
         }
     }
 
