@@ -14,6 +14,7 @@
 #include "spdlog/pattern_formatter.h"
 
 const HachimiVtable* g_hachimi = nullptr;
+int32_t g_hachimi_version = 0;
 
 namespace gallop {
 std::shared_ptr<spdlog::logger> logger;
@@ -80,6 +81,7 @@ void detach()
 extern "C" __declspec(dllexport) InitResult hachimi_init(const HachimiVtable* vtable, int version)
 {
 	g_hachimi = vtable;
+	g_hachimi_version = version;
 
 	// Initialize spdlog
 	auto hachimi_logger_sink = std::make_shared<gallop::hachimi_sink<std::mutex>>();

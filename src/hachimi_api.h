@@ -92,4 +92,9 @@ struct HachimiVtable {
     bool (*android_dex_call_static_string)(uint64_t handle, const char* method, const char* sig, const char* arg);
 };
 
+struct HachimiVtableV3 : public HachimiVtable {
+    bool (*gui_ui_searchable_combobox)(void* ui, const char* id_salt, int* selected_value, const int* item_values, const char** item_labels, size_t item_count);
+};
+
 extern const HachimiVtable* g_hachimi;
+extern int32_t g_hachimi_version;
