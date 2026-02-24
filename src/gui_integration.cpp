@@ -184,7 +184,15 @@ void render_gallop_settings(void* ui, void* userdata) {
 
     const char* overrides_label = show_overrides_section ? "▼ Character Overrides" : "▶ Character Overrides";
     if (g_hachimi->gui_ui_button(ui, overrides_label)) {
+        if (!show_overrides_section && g_hachimi_version >= 3) {
+            auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+            if (v3->gui_save_menu_width) v3->gui_save_menu_width();
+        }
         show_overrides_section = !show_overrides_section;
+        if (!show_overrides_section && g_hachimi_version >= 3) {
+            auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+            if (v3->gui_restore_menu_width) v3->gui_restore_menu_width();
+        }
     }
 
     if (show_overrides_section) {
@@ -281,7 +289,17 @@ void render_gallop_settings(void* ui, void* userdata) {
             g_hachimi->gui_ui_horizontal(ui, [](void* inner_ui, void* userdata) {
                 auto* c = static_cast<RowContext*>(userdata);
                 std::string edit_label = c->state->expanded ? fmt::format("▼ Edit##{}", *c->key) : fmt::format("▶ Edit##{}", *c->key);
-                if (g_hachimi->gui_ui_button(inner_ui, edit_label.c_str())) c->state->expanded = !c->state->expanded;
+                if (g_hachimi->gui_ui_button(inner_ui, edit_label.c_str())) {
+                    if (!c->state->expanded && g_hachimi_version >= 3) {
+                        auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+                        if (v3->gui_save_menu_width) v3->gui_save_menu_width();
+                    }
+                    c->state->expanded = !c->state->expanded;
+                    if (!c->state->expanded && g_hachimi_version >= 3) {
+                        auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+                        if (v3->gui_restore_menu_width) v3->gui_restore_menu_width();
+                    }
+                }
                 std::string btn_label = fmt::format("Remove##{}", *c->key);
                 if (g_hachimi->gui_ui_button(inner_ui, btn_label.c_str())) c->remove_clicked = true;
             }, &ctx);
@@ -348,7 +366,13 @@ void render_gallop_settings(void* ui, void* userdata) {
 
             g_hachimi->gui_ui_separator(ui);
 
-            if (ctx.remove_clicked) to_remove.push_back(key);
+            if (ctx.remove_clicked) {
+                to_remove.push_back(key);
+                if (ctx.state->expanded && g_hachimi_version >= 3) {
+                    auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+                    if (v3->gui_restore_menu_width) v3->gui_restore_menu_width();
+                }
+            }
             if (ctx.apply_rename_clicked) {
                 std::string new_key = std::to_string(state.new_base_id);
                 if (state.new_base_id != 0 && new_key != key) to_rename.push_back({key, new_key});
