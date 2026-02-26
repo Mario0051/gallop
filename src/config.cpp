@@ -11,7 +11,7 @@ gallop_config_t conf;
 
 int init_config()
 {
-	std::filesystem::path config_dir = gallop::path / "hachimi";
+	std::filesystem::path config_dir = gallop::path;
 	std::filesystem::path config_path = config_dir / "gallop_config.toml";
 
 	if (!std::filesystem::exists(config_path)) {
@@ -45,7 +45,7 @@ int init_config()
 
 int save_config()
 {
-	std::filesystem::path config_dir = gallop::path / "hachimi";
+	std::filesystem::path config_dir = gallop::path;
 	std::filesystem::path config_path = config_dir / "gallop_config.toml";
 
 	if (!std::filesystem::exists(config_dir)) {

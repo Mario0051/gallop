@@ -1,7 +1,12 @@
 #include <filesystem>
 #include <mutex>
 #include <thread>
-#include <windows.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+    #define HACHIMI_EXPORT __declspec(dllexport)
+#else
+    #define HACHIMI_EXPORT __attribute__((visibility("default")))
+#endif
 
 #include "config.hpp"
 #include "discord.hpp"
@@ -78,7 +83,7 @@ void detach()
 }
 } // namespace gallop
 
-extern "C" __declspec(dllexport) InitResult hachimi_init(const HachimiVtable* vtable, int version)
+extern "C" HACHIMI_EXPORT InitResult hachimi_init(const HachimiVtable* vtable, int version)
 {
 	g_hachimi = vtable;
 	g_hachimi_version = version;
@@ -90,7 +95,35 @@ extern "C" __declspec(dllexport) InitResult hachimi_init(const HachimiVtable* vt
 	auto formatter = std::make_unique<spdlog::pattern_formatter>("[%l] %v", spdlog::pattern_time_type::local, "");
 	spdlog::set_formatter(std::move(formatter));
 
-	gallop::path = std::filesystem::current_path();
+	if (g_hachimi_version >= 3) {
+        auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+
+        if (v3->hachimi_get_base_dir) {
+            const char* base_dir = v3->hachimi_get_base_dir();
+            if (base_dir != nullptr) {
+                gallop::path = std::string(base_dir);
+            }
+        }
+    } else {
+#if defined(_WIN32) || defined(_WIN64)
+		gallop::path = std::filesystem::current_path() / "hachimi";
+#else
+		const char* possible_paths[] = {
+			"/storage/emulated/0/Android/media/jp.co.cygames.umamusume/hachimi",
+			"/sdcard/Android/media/jp.co.cygames.umamusume/hachimi",
+			"/data/local/tmp/hachimi"
+		};
+
+		gallop::path = possible_paths[0];
+		for (const char* p : possible_paths) {
+			std::error_code ec;
+			if (std::filesystem::exists(p, ec) && !ec) {
+				gallop::path = p;
+				break;
+			}
+		}
+#endif
+	}
 
 	spdlog::info("[gallop] Hachimi init (Version: {})", version);
 

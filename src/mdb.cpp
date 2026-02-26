@@ -7,12 +7,13 @@
 #include <sqlite_modern_cpp.h>
 #include <unordered_map>
 #include <utility>
+
+#if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 
 // Hardcoded for now
 #define MASTER_PATH "\\UmamusumePrettyDerby_Jpn_Data\\Persistent\\master\\master.mdb"
 #define META_PATH "\\UmamusumePrettyDerby_Jpn_Data\\Persistent\\meta"
-#define DATABASE_KEY "9c2bab97bcf8c0c4f1a9ea7881a213f6c9ebf9d8d4c6a8e43ce5a259bde7e9fd"
 
 std::string utf8_encode(const std::wstring& in)
 {
@@ -33,6 +34,12 @@ std::wstring utf8_decode(const std::string& in)
 	MultiByteToWideChar(CP_UTF8, 0, &in[0], in.size(), &dst[0], size);
 	return dst;
 }
+#else
+#define MASTER_PATH "/data/data/jp.co.cygames.umamusume/files/master/master.mdb"
+#define META_PATH "/data/data/jp.co.cygames.umamusume/files/meta"
+#endif
+
+#define DATABASE_KEY "9c2bab97bcf8c0c4f1a9ea7881a213f6c9ebf9d8d4c6a8e43ce5a259bde7e9fd"
 
 namespace gallop {
 // Maps dresses to head IDs
@@ -51,8 +58,17 @@ std::map<int, std::string> id2dress;
 int init_mdb()
 {
 	std::string pragma_prepare = ("PRAGMA hexkey='" + std::string(DATABASE_KEY) + "'");
-	std::wstring master_path = gallop::path.wstring() + std::wstring(utf8_decode(MASTER_PATH)),
-				 meta_path = gallop::path.wstring() + std::wstring(utf8_decode(META_PATH));
+
+#if defined(_WIN32) || defined(_WIN64)
+	std::wstring game_root = std::filesystem::current_path().wstring();
+	std::wstring master_path_w = game_root + std::wstring(utf8_decode(MASTER_PATH));
+	std::wstring meta_path_w = game_root + std::wstring(utf8_decode(META_PATH));
+	std::string master_path = utf8_encode(master_path_w);
+	std::string meta_path = utf8_encode(meta_path_w);
+#else
+	std::string master_path = MASTER_PATH;
+	std::string meta_path = META_PATH;
+#endif
 
 	sqlite::database master;
 	sqlite::database meta;
@@ -61,9 +77,8 @@ int init_mdb()
 
 	// Open up master.mdb
 	try {
-		std::string path = utf8_encode(master_path);
-		master = sqlite::database(path, config);
-		spdlog::error("[mdb] master.mdb: {}", path);
+		master = sqlite::database(master_path, config);
+		spdlog::error("[mdb] master.mdb: {}", master_path);
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] master.mdb could not be opened! {}", e.what());
 		return 1;
@@ -71,8 +86,7 @@ int init_mdb()
 
 	// open up meta
 	try {
-		std::string path = utf8_encode(meta_path);
-		meta = sqlite::database(path, config);
+		meta = sqlite::database(meta_path, config);
 		meta << pragma_prepare;
 	} catch (const std::exception& e) {
 		spdlog::error("[mdb] meta could not be opened! {}", e.what());

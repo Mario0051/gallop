@@ -1,3 +1,7 @@
+if(ANDROID)
+    add_library(pthread INTERFACE)
+endif()
+
 # CPM manages the dependencies here
 include(../cmake/CPM.cmake)
 
@@ -48,6 +52,16 @@ target_include_directories(gallop PRIVATE
     ../thirdparty/sqlite_modern_cpp
 )
 
-target_link_libraries(gallop PRIVATE -static spdlog::spdlog sqlite3mc::sqlite3mc_static discord-rpc fmt::fmt nlohmann_json::nlohmann_json toml11::toml11)
+target_link_libraries(gallop PRIVATE spdlog::spdlog sqlite3mc::sqlite3mc_static discord-rpc fmt::fmt nlohmann_json::nlohmann_json toml11::toml11)
+
+if(WIN32)
+    target_link_libraries(gallop PRIVATE -static)
+endif()
+
+if(ANDROID)
+    find_library(log-lib log)
+
+    target_link_libraries(gallop PRIVATE ${log-lib})
+endif()
 
 target_compile_features(gallop PRIVATE cxx_std_20)
