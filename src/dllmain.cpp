@@ -3,9 +3,9 @@
 #include <thread>
 
 #if defined(_WIN32) || defined(_WIN64)
-    #define HACHIMI_EXPORT __declspec(dllexport)
+	#define HACHIMI_EXPORT __declspec(dllexport)
 #else
-    #define HACHIMI_EXPORT __attribute__((visibility("default")))
+	#define HACHIMI_EXPORT __attribute__((visibility("default")))
 #endif
 
 #include "config.hpp"
@@ -17,6 +17,7 @@
 
 #include "spdlog/sinks/base_sink.h"
 #include "spdlog/pattern_formatter.h"
+#include "spdlog/async.h"
 
 const HachimiVtable* g_hachimi = nullptr;
 int32_t g_hachimi_version = 0;
@@ -89,22 +90,28 @@ extern "C" HACHIMI_EXPORT InitResult hachimi_init(const HachimiVtable* vtable, i
 	g_hachimi_version = version;
 
 	// Initialize spdlog
+	spdlog::init_thread_pool(8192, 1);
 	auto hachimi_logger_sink = std::make_shared<gallop::hachimi_sink<std::mutex>>();
-	gallop::logger = std::make_shared<spdlog::logger>("base_logger", hachimi_logger_sink);
+	gallop::logger = std::make_shared<spdlog::async_logger>(
+		"base_logger",
+		hachimi_logger_sink,
+		spdlog::thread_pool(),
+		spdlog::async_overflow_policy::overrun_oldest
+	);
 	spdlog::set_default_logger(gallop::logger);
 	auto formatter = std::make_unique<spdlog::pattern_formatter>("[%l] %v", spdlog::pattern_time_type::local, "");
 	spdlog::set_formatter(std::move(formatter));
 
 	if (g_hachimi_version >= 3) {
-        auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+		auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
 
-        if (v3->hachimi_get_base_dir) {
-            const char* base_dir = v3->hachimi_get_base_dir();
-            if (base_dir != nullptr) {
-                gallop::path = std::string(base_dir);
-            }
-        }
-    } else {
+		if (v3->hachimi_get_base_dir) {
+			const char* base_dir = v3->hachimi_get_base_dir();
+			if (base_dir != nullptr) {
+				gallop::path = std::string(base_dir);
+			}
+		}
+	} else {
 #if defined(_WIN32) || defined(_WIN64)
 		gallop::path = std::filesystem::current_path() / "hachimi";
 #else

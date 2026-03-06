@@ -7,37 +7,8 @@
 #include <sqlite_modern_cpp.h>
 #include <unordered_map>
 #include <utility>
-
-#if defined(_WIN32) || defined(_WIN64)
-#include <windows.h>
-
-// Hardcoded for now
-#define MASTER_PATH "\\UmamusumePrettyDerby_Jpn_Data\\Persistent\\master\\master.mdb"
-#define META_PATH "\\UmamusumePrettyDerby_Jpn_Data\\Persistent\\meta"
-
-std::string utf8_encode(const std::wstring& in)
-{
-	if (in.empty())
-		return std::string();
-	const int size = WideCharToMultiByte(CP_UTF8, 0, &in[0], in.size(), NULL, 0, NULL, NULL);
-	std::string dst(size, 0);
-	WideCharToMultiByte(CP_UTF8, 0, &in[0], in.size(), &dst[0], size, NULL, NULL);
-	return dst;
-}
-
-std::wstring utf8_decode(const std::string& in)
-{
-	if (in.empty())
-		return std::wstring();
-	const int size = MultiByteToWideChar(CP_UTF8, 0, &in[0], in.size(), NULL, 0);
-	std::wstring dst(size, 0);
-	MultiByteToWideChar(CP_UTF8, 0, &in[0], in.size(), &dst[0], size);
-	return dst;
-}
-#else
-#define MASTER_PATH "/data/data/jp.co.cygames.umamusume/files/master/master.mdb"
-#define META_PATH "/data/data/jp.co.cygames.umamusume/files/meta"
-#endif
+#include <filesystem>
+#include <vector>
 
 #define DATABASE_KEY "9c2bab97bcf8c0c4f1a9ea7881a213f6c9ebf9d8d4c6a8e43ce5a259bde7e9fd"
 
@@ -59,16 +30,52 @@ int init_mdb()
 {
 	std::string pragma_prepare = ("PRAGMA hexkey='" + std::string(DATABASE_KEY) + "'");
 
+	std::string master_path;
+	std::string meta_path;
+	std::filesystem::path data_path;
+
+	if (g_hachimi_version >= 3) {
+		auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
+		if (v3->hachimi_get_data_path) {
+			const char* api_path = v3->hachimi_get_data_path();
+			if (api_path != nullptr) {
+				data_path = std::string(api_path);
+			}
+		}
+	}
+
+	if (data_path.empty()) {
 #if defined(_WIN32) || defined(_WIN64)
-	std::wstring game_root = std::filesystem::current_path().wstring();
-	std::wstring master_path_w = game_root + std::wstring(utf8_decode(MASTER_PATH));
-	std::wstring meta_path_w = game_root + std::wstring(utf8_decode(META_PATH));
-	std::string master_path = utf8_encode(master_path_w);
-	std::string meta_path = utf8_encode(meta_path_w);
+		std::filesystem::path game_root = std::filesystem::current_path();
+
+		std::vector<std::filesystem::path> possible_paths = {
+			game_root / "UmamusumePrettyDerby_Jpn_Data" / "Persistent",
+			game_root / "umamusume_Data" / "Persistent"
+		};
+
+		const char* user_profile = std::getenv("USERPROFILE");
+        if (user_profile != nullptr) {
+			std::filesystem::path local_low = std::filesystem::path(user_profile) / "AppData" / "LocalLow" / "Cygames";
+			possible_paths.push_back(local_low / "umamusume");
+			possible_paths.push_back(local_low / "UmamusumePrettyDerby_Jpn");
+		}
+
+		for (const auto& p : possible_paths) {
+			std::error_code ec;
+			if (std::filesystem::exists(p / "master" / "master.mdb", ec) && !ec) {
+				data_path = p;
+				break;
+			}
+		}
+
+		if (data_path.empty()) data_path = game_root;
 #else
-	std::string master_path = MASTER_PATH;
-	std::string meta_path = META_PATH;
+		data_path = "/storage/emulated/0/Android/data/jp.co.cygames.umamusume/files";
 #endif
+	}
+
+	master_path = (data_path / "master" / "master.mdb").string();
+	meta_path = (data_path / "meta").string();
 
 	sqlite::database master;
 	sqlite::database meta;

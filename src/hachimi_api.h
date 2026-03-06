@@ -97,6 +97,7 @@ struct HachimiVtableV3 : public HachimiVtable {
     void (*gui_save_menu_width)();
     void (*gui_restore_menu_width)();
     const char* (*hachimi_get_base_dir)();
+    const char* (*hachimi_get_data_path)();
 };
 
 extern const HachimiVtable* g_hachimi;
