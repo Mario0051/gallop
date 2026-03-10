@@ -283,8 +283,13 @@ void render_gallop_settings(void* ui, void* userdata) {
 
             RowContext ctx = { &key, &info, &state, false, false };
 
-            std::string label = fmt::format("{} -> {}", fmt_chara_display(orig_id), fmt_chara_display(info.charaId));
-            g_hachimi->gui_ui_label(ui, label.c_str());
+            g_hachimi->gui_ui_horizontal(ui, [](void* inner_ui, void* userdata) {
+                auto* c = static_cast<RowContext*>(userdata);
+                int orig_id = parse_id(c->key->c_str());
+
+                std::string label = fmt::format("{} -> {}", fmt_chara_display(orig_id), fmt_chara_display(c->info->charaId));
+                g_hachimi->gui_ui_label(inner_ui, label.c_str());
+            }, &ctx);
 
             g_hachimi->gui_ui_horizontal(ui, [](void* inner_ui, void* userdata) {
                 auto* c = static_cast<RowContext*>(userdata);
