@@ -70,7 +70,7 @@ int init_mdb()
 
 		if (data_path.empty()) data_path = game_root;
 #else
-		data_path = "/storage/emulated/0/Android/data/jp.co.cygames.umamusume/files";
+		data_path = "/data/data/jp.co.cygames.umamusume/files";
 #endif
 	}
 
