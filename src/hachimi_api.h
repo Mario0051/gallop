@@ -29,6 +29,7 @@ constexpr int32_t LOG_LEVEL_TRACE = 5;
 typedef void (*GuiMenuCallback)(void* userdata);
 typedef void (*GuiMenuSectionCallback)(void* ui, void* userdata);
 typedef void (*GuiUiCallback)(void* ui, void* userdata);
+typedef void* (*HachimiGetApiFn)(const char* name);
 
 struct HachimiVtable {
     const Hachimi* (*hachimi_instance)();

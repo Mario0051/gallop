@@ -22,6 +22,8 @@
 const HachimiVtable* g_hachimi = nullptr;
 int32_t g_hachimi_version = 0;
 
+static HachimiVtableV3 g_dynamic_vtable = {};
+
 namespace gallop {
 std::shared_ptr<spdlog::logger> logger;
 std::filesystem::path path;
@@ -84,11 +86,7 @@ void detach()
 }
 } // namespace gallop
 
-extern "C" HACHIMI_EXPORT InitResult hachimi_init(const HachimiVtable* vtable, int version)
-{
-	g_hachimi = vtable;
-	g_hachimi_version = version;
-
+InitResult internal_init(int version) {
 	// Initialize spdlog
 	spdlog::init_thread_pool(8192, 1);
 	auto hachimi_logger_sink = std::make_shared<gallop::hachimi_sink<std::mutex>>();
@@ -137,4 +135,51 @@ extern "C" HACHIMI_EXPORT InitResult hachimi_init(const HachimiVtable* vtable, i
 	gallop::attach();
 
 	return InitResult::Ok;
+}
+
+extern "C" HACHIMI_EXPORT InitResult hachimi_init(const HachimiVtable* vtable, int version)
+{
+	g_hachimi = vtable;
+	g_hachimi_version = version;
+
+	return internal_init(version);
+}
+
+extern "C" HACHIMI_EXPORT InitResult hachimi_init_v3(HachimiGetApiFn get_api, int version)
+{
+	g_hachimi_version = version;
+
+	g_dynamic_vtable.log = (decltype(g_dynamic_vtable.log))get_api("log");
+	g_dynamic_vtable.hachimi_instance = (decltype(g_dynamic_vtable.hachimi_instance))get_api("hachimi_instance");
+	g_dynamic_vtable.hachimi_get_interceptor = (decltype(g_dynamic_vtable.hachimi_get_interceptor))get_api("hachimi_get_interceptor");
+	g_dynamic_vtable.interceptor_hook = (decltype(g_dynamic_vtable.interceptor_hook))get_api("interceptor_hook");
+
+	g_dynamic_vtable.il2cpp_get_assembly_image = (decltype(g_dynamic_vtable.il2cpp_get_assembly_image))get_api("il2cpp_get_assembly_image");
+	g_dynamic_vtable.il2cpp_get_class = (decltype(g_dynamic_vtable.il2cpp_get_class))get_api("il2cpp_get_class");
+	g_dynamic_vtable.il2cpp_get_method_addr = (decltype(g_dynamic_vtable.il2cpp_get_method_addr))get_api("il2cpp_get_method_addr");
+	g_dynamic_vtable.il2cpp_get_field_from_name = (decltype(g_dynamic_vtable.il2cpp_get_field_from_name))get_api("il2cpp_get_field_from_name");
+
+	g_dynamic_vtable.il2cpp_get_field_value = (decltype(g_dynamic_vtable.il2cpp_get_field_value))get_api("il2cpp_get_field_value");
+	g_dynamic_vtable.il2cpp_set_field_value = (decltype(g_dynamic_vtable.il2cpp_set_field_value))get_api("il2cpp_set_field_value");
+
+	g_dynamic_vtable.gui_register_menu_section = (decltype(g_dynamic_vtable.gui_register_menu_section))get_api("gui_register_menu_section");
+	g_dynamic_vtable.gui_show_notification = (decltype(g_dynamic_vtable.gui_show_notification))get_api("gui_show_notification");
+	g_dynamic_vtable.gui_ui_heading = (decltype(g_dynamic_vtable.gui_ui_heading))get_api("gui_ui_heading");
+	g_dynamic_vtable.gui_ui_label = (decltype(g_dynamic_vtable.gui_ui_label))get_api("gui_ui_label");
+	g_dynamic_vtable.gui_ui_small = (decltype(g_dynamic_vtable.gui_ui_small))get_api("gui_ui_small");
+	g_dynamic_vtable.gui_ui_separator = (decltype(g_dynamic_vtable.gui_ui_separator))get_api("gui_ui_separator");
+	g_dynamic_vtable.gui_ui_button = (decltype(g_dynamic_vtable.gui_ui_button))get_api("gui_ui_button");
+	g_dynamic_vtable.gui_ui_checkbox = (decltype(g_dynamic_vtable.gui_ui_checkbox))get_api("gui_ui_checkbox");
+	g_dynamic_vtable.gui_ui_text_edit_singleline = (decltype(g_dynamic_vtable.gui_ui_text_edit_singleline))get_api("gui_ui_text_edit_singleline");
+	g_dynamic_vtable.gui_ui_horizontal = (decltype(g_dynamic_vtable.gui_ui_horizontal))get_api("gui_ui_horizontal");
+
+	g_dynamic_vtable.gui_ui_searchable_combobox = (decltype(g_dynamic_vtable.gui_ui_searchable_combobox))get_api("gui_ui_searchable_combobox");
+	g_dynamic_vtable.gui_get_menu_width = (decltype(g_dynamic_vtable.gui_get_menu_width))get_api("gui_get_menu_width");
+	g_dynamic_vtable.gui_set_menu_width = (decltype(g_dynamic_vtable.gui_set_menu_width))get_api("gui_set_menu_width");
+	g_dynamic_vtable.hachimi_get_base_dir = (decltype(g_dynamic_vtable.hachimi_get_base_dir))get_api("hachimi_get_base_dir");
+	g_dynamic_vtable.hachimi_get_data_path = (decltype(g_dynamic_vtable.hachimi_get_data_path))get_api("hachimi_get_data_path");
+
+	g_hachimi = &g_dynamic_vtable;
+
+	return internal_init(version);
 }
