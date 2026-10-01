@@ -9,6 +9,15 @@
 #include <vector>
 #include <cstring>
 #include <cstdlib>
+#include <algorithm>
+
+static int get_index(const std::vector<int>& vec, int val) {
+    auto it = std::find(vec.begin(), vec.end(), val);
+    if (it != vec.end()) {
+        return static_cast<int>(std::distance(vec.begin(), it));
+    }
+    return 0;
+}
 
 static int parse_id(const char* buffer) {
     try {
@@ -38,10 +47,13 @@ static std::string get_dress_name_simple(int id) {
 
 static int new_orig_id = 0;
 static char new_orig_id_str[64] = "";
+static char new_orig_chara_search[128] = {0};
 static int new_target_chara = 0;
 static char new_target_chara_str[64] = "";
+static char new_target_chara_search[128] = {0};
 static int new_target_dress = 0;
 static char new_target_dress_str[64] = "";
+static char new_target_dress_search[128] = {0};
 static bool new_replace_mini = false;
 static bool new_home_only = false;
 
@@ -60,6 +72,9 @@ struct EditState {
     char orig_chara_str[64] = "";
     char target_chara_str[64] = "";
     char target_dress_str[64] = "";
+    char base_search[128] = {0};
+    char chara_search[128] = {0};
+    char dress_search[128] = {0};
     bool initialized = false;
 };
 
@@ -183,8 +198,11 @@ void render_gallop_settings(void* ui, void* userdata) {
         g_hachimi->gui_ui_small(ui, "Original Character ID:");
         if (g_hachimi_version >= 3) {
             auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-            if (v3->gui_ui_searchable_combobox) {
-                v3->gui_ui_searchable_combobox(ui, "new_orig_chara", &new_orig_id, char_ids.data(), char_labels.data(), char_ids.size());
+            if (v3->gui_ui_combo_menu) {
+                int idx = get_index(char_ids, new_orig_id);
+                if (v3->gui_ui_combo_menu(ui, "new_orig_chara", &idx, char_labels.data(), char_labels.size(), new_orig_chara_search, sizeof(new_orig_chara_search))) {
+                    new_orig_id = char_ids[idx];
+                }
             }
         } else {
             g_hachimi->gui_ui_text_edit_singleline(ui, new_orig_id_str, sizeof(new_orig_id_str));
@@ -198,8 +216,11 @@ void render_gallop_settings(void* ui, void* userdata) {
         g_hachimi->gui_ui_small(ui, "Target Character ID:");
         if (g_hachimi_version >= 3) {
             auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-            if (v3->gui_ui_searchable_combobox) {
-                v3->gui_ui_searchable_combobox(ui, "new_target_chara", &new_target_chara, char_ids.data(), char_labels.data(), char_ids.size());
+            if (v3->gui_ui_combo_menu) {
+                int idx = get_index(char_ids, new_target_chara);
+                if (v3->gui_ui_combo_menu(ui, "new_target_chara", &idx, char_labels.data(), char_labels.size(), new_target_chara_search, sizeof(new_target_chara_search))) {
+                    new_target_chara = char_ids[idx];
+                }
             }
         } else {
             g_hachimi->gui_ui_text_edit_singleline(ui, new_target_chara_str, sizeof(new_target_chara_str));
@@ -213,8 +234,11 @@ void render_gallop_settings(void* ui, void* userdata) {
         g_hachimi->gui_ui_small(ui, "Target Dress ID:");
         if (g_hachimi_version >= 3) {
             auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-            if (v3->gui_ui_searchable_combobox) {
-                v3->gui_ui_searchable_combobox(ui, "new_target_dress", &new_target_dress, dress_ids.data(), dress_labels.data(), dress_ids.size());
+            if (v3->gui_ui_combo_menu) {
+                int idx = get_index(dress_ids, new_target_dress);
+                if (v3->gui_ui_combo_menu(ui, "new_target_dress", &idx, dress_labels.data(), dress_labels.size(), new_target_dress_search, sizeof(new_target_dress_search))) {
+                    new_target_dress = dress_ids[idx];
+                }
             }
         } else {
             g_hachimi->gui_ui_text_edit_singleline(ui, new_target_dress_str, sizeof(new_target_dress_str));
@@ -244,6 +268,9 @@ void render_gallop_settings(void* ui, void* userdata) {
                 new_orig_id_str[0] = '\0';
                 new_target_chara_str[0] = '\0';
                 new_target_dress_str[0] = '\0';
+                new_orig_chara_search[0] = '\0';
+                new_target_chara_search[0] = '\0';
+                new_target_dress_search[0] = '\0';
                 new_replace_mini = false;
                 new_home_only = false;
             }
@@ -291,8 +318,11 @@ void render_gallop_settings(void* ui, void* userdata) {
                     auto* c = static_cast<RowContext*>(userdata);
                     if (g_hachimi_version >= 3) {
                         auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-                        if (v3->gui_ui_searchable_combobox) {
-                            v3->gui_ui_searchable_combobox(inner_ui, (*c->key + "_base").c_str(), &c->state->new_base_id, char_ids.data(), char_labels.data(), char_ids.size());
+                        if (v3->gui_ui_combo_menu) {
+                            int idx = get_index(char_ids, c->state->new_base_id);
+                            if (v3->gui_ui_combo_menu(inner_ui, (*c->key + "_base").c_str(), &idx, char_labels.data(), char_labels.size(), c->state->base_search, sizeof(c->state->base_search))) {
+                                c->state->new_base_id = char_ids[idx];
+                            }
                         }
                     } else {
                         g_hachimi->gui_ui_text_edit_singleline(inner_ui, c->state->orig_chara_str, sizeof(c->state->orig_chara_str));
@@ -309,8 +339,11 @@ void render_gallop_settings(void* ui, void* userdata) {
                 g_hachimi->gui_ui_small(ui, "Target Character:");
                 if (g_hachimi_version >= 3) {
                     auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-                    if (v3->gui_ui_searchable_combobox) {
-                        v3->gui_ui_searchable_combobox(ui, (key + "_chara").c_str(), &info.charaId, char_ids.data(), char_labels.data(), char_ids.size());
+                    if (v3->gui_ui_combo_menu) {
+                        int idx = get_index(char_ids, info.charaId);
+                        if (v3->gui_ui_combo_menu(ui, (key + "_chara").c_str(), &idx, char_labels.data(), char_labels.size(), state.chara_search, sizeof(state.chara_search))) {
+                            info.charaId = char_ids[idx];
+                        }
                     }
                 } else {
                     g_hachimi->gui_ui_text_edit_singleline(ui, state.target_chara_str, sizeof(state.target_chara_str));
@@ -324,8 +357,11 @@ void render_gallop_settings(void* ui, void* userdata) {
                 g_hachimi->gui_ui_small(ui, "Target Dress:");
                 if (g_hachimi_version >= 3) {
                     auto v3 = reinterpret_cast<const HachimiVtableV3*>(g_hachimi);
-                    if (v3->gui_ui_searchable_combobox) {
-                        v3->gui_ui_searchable_combobox(ui, (key + "_dress").c_str(), &info.clothId, dress_ids.data(), dress_labels.data(), dress_ids.size());
+                    if (v3->gui_ui_combo_menu) {
+                        int idx = get_index(dress_ids, info.clothId);
+                        if (v3->gui_ui_combo_menu(ui, (key + "_dress").c_str(), &idx, dress_labels.data(), dress_labels.size(), state.dress_search, sizeof(state.dress_search))) {
+                            info.clothId = dress_ids[idx];
+                        }
                     }
                 } else {
                     g_hachimi->gui_ui_text_edit_singleline(ui, state.target_dress_str, sizeof(state.target_dress_str));

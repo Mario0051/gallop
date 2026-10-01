@@ -116,6 +116,7 @@ InitResult internal_init(int version) {
 		const char* possible_paths[] = {
 			"/storage/emulated/0/Android/media/jp.co.cygames.umamusume/hachimi",
 			"/sdcard/Android/media/jp.co.cygames.umamusume/hachimi",
+			"/data/data/jp.co.cygames.umamusume/files/hachimi",
 			"/data/local/tmp/hachimi"
 		};
 
@@ -173,7 +174,7 @@ extern "C" HACHIMI_EXPORT InitResult hachimi_init_v3(HachimiGetApiFn get_api, in
 	g_dynamic_vtable.gui_ui_text_edit_singleline = (decltype(g_dynamic_vtable.gui_ui_text_edit_singleline))get_api("gui_ui_text_edit_singleline");
 	g_dynamic_vtable.gui_ui_horizontal = (decltype(g_dynamic_vtable.gui_ui_horizontal))get_api("gui_ui_horizontal");
 
-	g_dynamic_vtable.gui_ui_searchable_combobox = (decltype(g_dynamic_vtable.gui_ui_searchable_combobox))get_api("gui_ui_searchable_combobox");
+	g_dynamic_vtable.gui_ui_combo_menu = (decltype(g_dynamic_vtable.gui_ui_combo_menu))get_api("gui_ui_combo_menu");
 	g_dynamic_vtable.gui_get_menu_width = (decltype(g_dynamic_vtable.gui_get_menu_width))get_api("gui_get_menu_width");
 	g_dynamic_vtable.gui_set_menu_width = (decltype(g_dynamic_vtable.gui_set_menu_width))get_api("gui_set_menu_width");
 	g_dynamic_vtable.hachimi_get_base_dir = (decltype(g_dynamic_vtable.hachimi_get_base_dir))get_api("hachimi_get_base_dir");

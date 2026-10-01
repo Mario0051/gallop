@@ -94,7 +94,7 @@ struct HachimiVtable {
 };
 
 struct HachimiVtableV3 : public HachimiVtable {
-    bool (*gui_ui_searchable_combobox)(void* ui, const char* id_salt, int* selected_value, const int* item_values, const char** item_labels, size_t item_count);
+    bool (*gui_ui_combo_menu)(void* ui, const char* id, int* selected_index, const char** items, size_t item_count, char* search_term, size_t search_term_len);
     float (*gui_get_menu_width)();
     void (*gui_set_menu_width)(float width);
     const char* (*hachimi_get_base_dir)();
