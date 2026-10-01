@@ -9,6 +9,7 @@
 #include <utility>
 #include <filesystem>
 #include <vector>
+#include <fstream>
 
 #define DATABASE_KEY "9c2bab97bcf8c0c4f1a9ea7881a213f6c9ebf9d8d4c6a8e43ce5a259bde7e9fd"
 
@@ -144,19 +145,41 @@ int init_mdb()
 
 	// Try querying character and dress names
 	// Use localized_data over a result from a query
-	if (std::filesystem::exists("hachimi\\localized_data") && std::filesystem::exists("hachimi\\localized_data\\text_data_dict.json")) {
-		using namespace nlohmann;
-		json j = json::parse(std::ifstream("hachimi\\localized_data\\text_data_dict.json"));
-		for (const auto& oid : j.value("6", std::unordered_map<std::string, std::string>())) {
-			const int id = std::stoi(oid.first);
-			const std::string name = oid.second;
-			id2name.emplace(id, name);
+	std::filesystem::path dict_path;
+	try {
+		std::filesystem::path config_json_path = gallop::path / "config.json";
+		if (std::filesystem::exists(config_json_path)) {
+			nlohmann::json cfg = nlohmann::json::parse(std::ifstream(config_json_path));
+			bool found_repo_dir = false;
+			if (cfg.contains("selected_tl_repo_id") && cfg["selected_tl_repo_id"].is_number()) {
+				int repo_id = cfg["selected_tl_repo_id"].get<int>();
+				std::string repo_folder = "localized_data_" + std::to_string(repo_id);
+				if (std::filesystem::exists(gallop::path / repo_folder)) {
+					dict_path = gallop::path / repo_folder / "text_data_dict.json";
+					found_repo_dir = true;
+				}
+			}
+			if (!found_repo_dir && cfg.contains("localized_data_dir") && cfg["localized_data_dir"].is_string()) {
+				dict_path = gallop::path / cfg["localized_data_dir"].get<std::string>() / "text_data_dict.json";
+			}
 		}
-		for (const auto& oid : j.value("14", std::unordered_map<std::string, std::string>())) {
-			const int id = std::stoi(oid.first);
-			const std::string name = oid.second;
-			id2dress.emplace(id, name);
-		}
+	} catch (...) {}
+
+	if (!dict_path.empty() && std::filesystem::exists(dict_path)) {
+		try {
+			using namespace nlohmann;
+			json j = json::parse(std::ifstream(dict_path));
+			for (const auto& oid : j.value("6", std::unordered_map<std::string, std::string>())) {
+				const int id = std::stoi(oid.first);
+				const std::string name = oid.second;
+				id2name.emplace(id, name);
+			}
+			for (const auto& oid : j.value("14", std::unordered_map<std::string, std::string>())) {
+				const int id = std::stoi(oid.first);
+				const std::string name = oid.second;
+				id2dress.emplace(id, name);
+			}
+		} catch (...) {}
 	}
 	// Now try a query for possibly missing names (untranslated)
 	try {
